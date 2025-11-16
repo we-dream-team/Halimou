@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Calendar, Plus, Minus, Save, Settings } from 'lucide-react'
+import { Calendar, Plus, Minus, Save, Settings, Package } from 'lucide-react'
 import { productApi, inventoryApi, type Product, type InventoryProduct, type DailyInventory } from '@/lib/api'
 
 export default function InventairePage() {
