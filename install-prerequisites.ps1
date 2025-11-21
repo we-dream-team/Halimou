@@ -369,8 +369,21 @@ if (Test-Cmd -Name "mongod") {
 }
 
 Write-Host ""
-if (-not $allInstalled) {
-  Write-Host "[!] ATTENTION: Certains prerequis ne sont pas installes." -ForegroundColor Yellow
+# Verifier les prerequis essentiels (Git, Node.js, Python)
+$essentialInstalled = $true
+if (-not (Test-Cmd -Name "git")) {
+    $essentialInstalled = $false
+}
+if (-not (Test-Cmd -Name "node")) {
+    $essentialInstalled = $false
+}
+if (-not ((Test-Cmd -Name "python") -or (Test-Cmd -Name "py"))) {
+    $essentialInstalled = $false
+}
+
+if (-not $essentialInstalled) {
+  Write-Host "[!] ATTENTION: Certains prerequis essentiels ne sont pas installes." -ForegroundColor Yellow
+  Write-Host "   (Git, Node.js, Python sont requis)" -ForegroundColor Yellow
   Write-Host "   Fermez et rouvrez PowerShell en tant qu'administrateur, puis reessayez." -ForegroundColor Yellow
   Write-Host ""
 }
@@ -384,3 +397,97 @@ Write-Host ""
 Write-Host "[*] Astuce: Si des commandes ne sont pas reconnues apres reouverture," -ForegroundColor Yellow
 Write-Host "   redemarrez votre ordinateur pour que tous les changements de PATH soient appliques." -ForegroundColor Yellow
 Write-Host ""
+
+# Proposer de cloner et demarrer automatiquement
+# Utiliser essentialInstalled au lieu de allInstalled pour permettre de continuer sans MongoDB
+if ($essentialInstalled) {
+    Write-Host ""
+    Write-Host "[*] Voulez-vous que je clone le projet et demarre l'application maintenant?" -ForegroundColor Cyan
+    Write-Host "   (Le script va cloner le repo, installer les dependances et demarrer l'app)" -ForegroundColor Gray
+    Write-Host "   Note: Si les commandes ne sont pas reconnues, fermez et rouvrez PowerShell d'abord." -ForegroundColor Yellow
+    $response = Read-Host "Continuer? (o/N)"
+    
+    if ($response -eq "o" -or $response -eq "O") {
+        Write-Host ""
+        Write-Host "[*] Rafraichissement du PATH..." -ForegroundColor Yellow
+        Refresh-Path
+        
+        # Verifier que Git est disponible
+        if (-not (Test-Cmd -Name "git")) {
+            Write-Host "[!] Git n'est pas encore dans le PATH." -ForegroundColor Yellow
+            Write-Host "   Fermez et rouvrez PowerShell, puis relancez:" -ForegroundColor Yellow
+            Write-Host "   git clone https://github.com/we-dream-team/Halimou.git" -ForegroundColor White
+            Write-Host "   cd Halimou" -ForegroundColor White
+            Write-Host "   .\install-and-start.ps1" -ForegroundColor White
+            exit 0
+        }
+        
+        Write-Host "[*] Clonage du projet..." -ForegroundColor Yellow
+        
+        # Determiner le dossier de destination
+        $currentDir = Get-Location
+        $projectDir = Join-Path $currentDir "Halimou"
+        
+        # Verifier si le dossier existe deja
+        if (Test-Path $projectDir) {
+            Write-Host "[!] Le dossier Halimou existe deja." -ForegroundColor Yellow
+            $overwrite = Read-Host "Voulez-vous le supprimer et re-cloner? (o/N)"
+            if ($overwrite -eq "o" -or $overwrite -eq "O") {
+                Remove-Item -Path $projectDir -Recurse -Force
+                Write-Host "[OK] Dossier supprime" -ForegroundColor Green
+            } else {
+                Write-Host "[*] Utilisation du dossier existant" -ForegroundColor Yellow
+            }
+        }
+        
+        # Cloner le projet si le dossier n'existe pas
+        if (-not (Test-Path $projectDir)) {
+            try {
+                & git clone https://github.com/we-dream-team/Halimou.git $projectDir
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "[OK] Projet clone avec succes" -ForegroundColor Green
+                } else {
+                    throw "Echec du clonage (code: $LASTEXITCODE)"
+                }
+            } catch {
+                Write-Host "[ERREUR] Impossible de cloner le projet: $_" -ForegroundColor Red
+                Write-Host "   Verifiez que Git est installe et dans le PATH." -ForegroundColor Yellow
+                Write-Host "   Clonez manuellement: git clone https://github.com/we-dream-team/Halimou.git" -ForegroundColor Yellow
+                exit 1
+            }
+        }
+        
+        # Aller dans le dossier du projet
+        Set-Location $projectDir
+        
+        Write-Host ""
+        Write-Host "[*] Installation et demarrage de l'application..." -ForegroundColor Yellow
+        Write-Host ""
+        
+        # Lancer le script d'installation et demarrage
+        if (Test-Path ".\install-and-start.ps1") {
+            try {
+                # Executer dans le contexte actuel pour garder le PATH rafraichi
+                & ".\install-and-start.ps1"
+            } catch {
+                Write-Host "[ERREUR] Erreur lors du demarrage: $_" -ForegroundColor Red
+                Write-Host "   Lancez manuellement: .\install-and-start.ps1" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "[ERREUR] Script install-and-start.ps1 introuvable dans le projet clone." -ForegroundColor Red
+            Write-Host "   Lancez manuellement: cd Halimou puis .\install-and-start.ps1" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host ""
+        Write-Host "[*] Pour cloner et demarrer manuellement:" -ForegroundColor Cyan
+        Write-Host "   git clone https://github.com/we-dream-team/Halimou.git" -ForegroundColor White
+        Write-Host "   cd Halimou" -ForegroundColor White
+        Write-Host "   .\install-and-start.ps1" -ForegroundColor White
+        Write-Host ""
+    }
+} else {
+    Write-Host ""
+    Write-Host "[!] Certains prerequis ne sont pas installes. Installez-les d'abord." -ForegroundColor Yellow
+    Write-Host "   Puis relancez ce script pour cloner et demarrer l'application." -ForegroundColor Yellow
+    Write-Host ""
+}
