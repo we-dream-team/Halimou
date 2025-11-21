@@ -327,25 +327,180 @@ Write-Host ""
 
 Set-Location "$Root"
 
-# Sur Windows, on ne peut pas utiliser bash/zsh facilement, donc on lance directement
-Write-Host "[!] Sur Windows, vous devez lancer le backend et le frontend dans deux terminaux separes:" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Terminal 1 - Backend:" -ForegroundColor Cyan
-Write-Host "  cd backend" -ForegroundColor White
-Write-Host "  .venv\Scripts\Activate.ps1" -ForegroundColor White
-Write-Host "  python -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload" -ForegroundColor White
-Write-Host ""
-Write-Host "Terminal 2 - Frontend:" -ForegroundColor Cyan
-Write-Host "  cd frontend" -ForegroundColor White
-if ($packageManager -eq "pnpm") {
-  Write-Host "  pnpm dev" -ForegroundColor White
-} elseif ($packageManager -eq "yarn") {
-  Write-Host "  yarn dev" -ForegroundColor White
-} else {
-  Write-Host "  npm run dev" -ForegroundColor White
+# Fonction pour nettoyer les processus en cas d'interruption
+function Cleanup-Processes {
+    Write-Host ""
+    Write-Host "[Halimou] Arret en cours..." -ForegroundColor Yellow
+    if ($backendProcess -and -not $backendProcess.HasExited) {
+        Stop-Process -Id $backendProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+    if ($frontendProcess -and -not $frontendProcess.HasExited) {
+        Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+    Write-Host "[Halimou] Arret termine." -ForegroundColor Green
 }
+
+# Enregistrer le gestionnaire d'evenements pour Ctrl+C
+[Console]::TreatControlCAsInput = $false
+$null = Register-EngineEvent PowerShell.Exiting -Action { Cleanup-Processes }
+
+# Demander a l'utilisateur comment lancer
+Write-Host "[*] Choisissez comment lancer l'application:" -ForegroundColor Cyan
+Write-Host "  1. Lancer dans des fenetres PowerShell separees (recommandé)" -ForegroundColor White
+Write-Host "  2. Lancer en arriere-plan dans cette fenetre" -ForegroundColor White
+Write-Host "  3. Afficher les instructions manuelles" -ForegroundColor White
 Write-Host ""
-Write-Host "Ou utilisez le script start-dev.sh si vous avez Git Bash ou WSL installe." -ForegroundColor Yellow
-Write-Host ""
+$choice = Read-Host "Votre choix (1/2/3)"
+
+if ($choice -eq "3") {
+    Write-Host ""
+    Write-Host "[*] Instructions manuelles:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Terminal 1 - Backend:" -ForegroundColor Cyan
+    Write-Host "  cd backend" -ForegroundColor White
+    Write-Host "  .venv\Scripts\Activate.ps1" -ForegroundColor White
+    Write-Host "  python -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Terminal 2 - Frontend:" -ForegroundColor Cyan
+    Write-Host "  cd frontend" -ForegroundColor White
+    if ($packageManager -eq "pnpm") {
+        Write-Host "  pnpm dev" -ForegroundColor White
+    } elseif ($packageManager -eq "yarn") {
+        Write-Host "  yarn dev" -ForegroundColor White
+    } else {
+        Write-Host "  npm run dev" -ForegroundColor White
+    }
+    Write-Host ""
+    exit 0
+}
+
+# Preparer les commandes
+$backendScript = @"
+cd `"$Root\backend`"
+`"$pythonExe`" -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+pause
+"@
+
+$frontendScript = @"
+cd `"$Root\frontend`"
+"@
+
+if ($packageManager -eq "pnpm") {
+    $frontendScript += "`npnpm dev"
+} elseif ($packageManager -eq "yarn") {
+    $frontendScript += "`nyarn dev"
+} else {
+    $frontendScript += "`nnpm run dev"
+}
+$frontendScript += "`npause"
+
+if ($choice -eq "1") {
+    # Lancer dans des fenetres separees
+    Write-Host ""
+    Write-Host "[*] Demarrage du backend dans une nouvelle fenetre..." -ForegroundColor Yellow
+    $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
+    $backendScriptPath = "$env:TEMP\halimou-backend-$timestamp.ps1"
+    $backendScript | Out-File -FilePath $backendScriptPath -Encoding UTF8
+    
+    $backendProcess = Start-Process powershell.exe -ArgumentList "-NoExit", "-File", "`"$backendScriptPath`"" -WindowStyle Normal -PassThru
+    
+    Start-Sleep -Seconds 2
+    
+    Write-Host "[*] Demarrage du frontend dans une nouvelle fenetre..." -ForegroundColor Yellow
+    $frontendScriptPath = "$env:TEMP\halimou-frontend-$timestamp.ps1"
+    $frontendScript | Out-File -FilePath $frontendScriptPath -Encoding UTF8
+    
+    $frontendProcess = Start-Process powershell.exe -ArgumentList "-NoExit", "-File", "`"$frontendScriptPath`"" -WindowStyle Normal -PassThru
+    
+    Write-Host ""
+    Write-Host "[OK] Backend et Frontend demarres dans des fenetres separees!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[*] URLs:" -ForegroundColor Cyan
+    Write-Host "  - API Backend: http://localhost:8001" -ForegroundColor White
+    Write-Host "  - Frontend Web: http://localhost:3000" -ForegroundColor White
+    Write-Host ""
+    Write-Host "[*] Pour arreter, fermez les fenetres PowerShell ou appuyez sur Ctrl+C dans chaque fenetre." -ForegroundColor Yellow
+    Write-Host "[*] Pour redemarrer rapidement, utilisez: .\start-dev.ps1" -ForegroundColor Yellow
+    Write-Host ""
+    
+} elseif ($choice -eq "2") {
+    # Lancer en arriere-plan
+    Write-Host ""
+    Write-Host "[*] Demarrage du backend en arriere-plan..." -ForegroundColor Yellow
+    
+    $backendJob = Start-Job -ScriptBlock {
+        param($Root, $PythonExe)
+        Set-Location "$Root\backend"
+        & $PythonExe -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+    } -ArgumentList $Root, $pythonExe
+    
+    Start-Sleep -Seconds 3
+    
+    Write-Host "[*] Demarrage du frontend en arriere-plan..." -ForegroundColor Yellow
+    
+    $frontendCmd = if ($packageManager -eq "pnpm") {
+        "pnpm dev"
+    } elseif ($packageManager -eq "yarn") {
+        "yarn dev"
+    } else {
+        "npm run dev"
+    }
+    
+    $frontendJob = Start-Job -ScriptBlock {
+        param($Root, $Cmd)
+        Set-Location "$Root\frontend"
+        Invoke-Expression $Cmd
+    } -ArgumentList $Root, $frontendCmd
+    
+    Write-Host ""
+    Write-Host "[OK] Backend et Frontend demarres en arriere-plan!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[*] URLs:" -ForegroundColor Cyan
+    Write-Host "  - API Backend: http://localhost:8001" -ForegroundColor White
+    Write-Host "  - Frontend Web: http://localhost:3000" -ForegroundColor White
+    Write-Host ""
+    Write-Host "[*] Jobs PowerShell:" -ForegroundColor Cyan
+    Write-Host "  Backend Job ID: $($backendJob.Id)" -ForegroundColor White
+    Write-Host "  Frontend Job ID: $($frontendJob.Id)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "[*] Pour voir les logs:" -ForegroundColor Yellow
+    Write-Host "  Receive-Job -Id $($backendJob.Id)" -ForegroundColor White
+    Write-Host "  Receive-Job -Id $($frontendJob.Id)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "[*] Pour arreter:" -ForegroundColor Yellow
+    Write-Host "  Stop-Job -Id $($backendJob.Id), $($frontendJob.Id)" -ForegroundColor White
+    Write-Host "  Remove-Job -Id $($backendJob.Id), $($frontendJob.Id)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Appuyez sur Ctrl+C pour arreter les services..." -ForegroundColor Yellow
+    
+    try {
+        # Attendre et afficher les logs
+        while ($true) {
+            $backendOutput = Receive-Job -Id $backendJob.Id -ErrorAction SilentlyContinue
+            $frontendOutput = Receive-Job -Id $frontendJob.Id -ErrorAction SilentlyContinue
+            
+            if ($backendOutput) {
+                Write-Host "[Backend] $backendOutput" -ForegroundColor Cyan
+            }
+            if ($frontendOutput) {
+                Write-Host "[Frontend] $frontendOutput" -ForegroundColor Magenta
+            }
+            
+            if ($backendJob.State -eq "Failed" -or $frontendJob.State -eq "Failed") {
+                Write-Host "[ERREUR] Un des services a echoue." -ForegroundColor Red
+                break
+            }
+            
+            Start-Sleep -Seconds 1
+        }
+    } finally {
+        Cleanup-Processes
+        Stop-Job -Id $backendJob.Id, $frontendJob.Id -ErrorAction SilentlyContinue
+        Remove-Job -Id $backendJob.Id, $frontendJob.Id -ErrorAction SilentlyContinue
+    }
+} else {
+    Write-Host "[ERREUR] Choix invalide." -ForegroundColor Red
+    exit 1
+}
 
 

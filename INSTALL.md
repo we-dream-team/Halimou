@@ -36,11 +36,26 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 .\install-prerequisites.ps1
 ```
 
+**Pour désinstaller les prérequis (pour refaire des tests):**
+
+```powershell
+# Désinstaller tout
+.\uninstall-prerequisites.ps1 -All
+
+# Ou désinstaller un par un
+.\uninstall-prerequisites.ps1 -Git
+.\uninstall-prerequisites.ps1 -Node
+.\uninstall-prerequisites.ps1 -Python
+.\uninstall-prerequisites.ps1 -Jq
+.\uninstall-prerequisites.ps1 -MongoDB
+```
+
 ## 📦 Ce qui sera installé automatiquement
 
 - ✅ **Git** - Pour cloner le projet
 - ✅ **Node.js 18+** - Pour le frontend
-- ✅ **Python 3.10+** - Pour le backend
+- ⚠️ **Python 3.10+** - Pour le backend (installation manuelle recommandée)
+- ✅ **jq** - Outil de traitement JSON
 - ✅ **MongoDB** - Base de données
 - ✅ **pnpm** - Gestionnaire de paquets Node.js
 

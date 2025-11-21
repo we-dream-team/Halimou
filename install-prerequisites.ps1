@@ -169,37 +169,65 @@ if (-not (Test-Cmd -Name "node")) {
   Write-Host "[OK] Node.js deja installe: $(node --version 2>&1)" -ForegroundColor Green
 }
 
-# Installer Python
+# Installer Python (installation manuelle recommandee)
 if (-not (Test-Cmd -Name "python") -and -not (Test-Cmd -Name "py")) {
   Write-Host "[*] Installation de Python..." -ForegroundColor Yellow
-  $pythonInstalled = $false
-  if (-not (Install-WithWinget -PackageId "Python.Python.3.11" -PackageName "Python")) {
-    if (-not (Install-WithChoco -PackageName "python311" -DisplayName "Python")) {
-      Write-Host "[ERREUR] Impossible d'installer Python automatiquement." -ForegroundColor Red
-      Write-Host "   Veuillez l'installer manuellement: https://www.python.org/downloads/" -ForegroundColor Yellow
-      Write-Host "   IMPORTANT: Cochez 'Add Python to PATH' lors de l'installation!" -ForegroundColor Yellow
-      Write-Host "   Apres installation, fermez et rouvrez PowerShell." -ForegroundColor Yellow
-      $pythonInstalled = $false
-    } else {
-      $pythonInstalled = $true
-    }
-  } else {
-    $pythonInstalled = $true
+  Write-Host "[!] Python doit etre installe manuellement pour une meilleure compatibilite." -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "   Instructions:" -ForegroundColor Cyan
+  Write-Host "   1. Telechargez Python depuis: https://www.python.org/downloads/" -ForegroundColor White
+  Write-Host "   2. Lancez l'installateur" -ForegroundColor White
+  Write-Host "   3. IMPORTANT: Cochez 'Add Python to PATH' lors de l'installation!" -ForegroundColor Yellow
+  Write-Host "   4. Cliquez sur 'Install Now'" -ForegroundColor White
+  Write-Host "   5. Apres installation, fermez et rouvrez PowerShell" -ForegroundColor White
+  Write-Host ""
+  
+  $response = Read-Host "Voulez-vous ouvrir la page de telechargement de Python maintenant? (o/N)"
+  if ($response -eq "o" -or $response -eq "O") {
+    Start-Process "https://www.python.org/downloads/"
   }
   
-  if ($pythonInstalled) {
-    Refresh-Path
-    # Verifier que Python est maintenant disponible
-    if ((Test-Cmd -Name "python") -or (Test-Cmd -Name "py")) {
-      $pythonVersion = if (Test-Cmd -Name "python") { python --version 2>&1 } else { py --version 2>&1 }
-      Write-Host "[OK] Python installe: $pythonVersion" -ForegroundColor Green
-    } else {
-      Write-Host "[!] Python installe mais pas encore dans le PATH. Fermez et rouvrez PowerShell." -ForegroundColor Yellow
-    }
-  }
+  Write-Host ""
+  Write-Host "[!] Apres avoir installe Python, relancez ce script." -ForegroundColor Yellow
+  Write-Host ""
+  exit 1
 } else {
   $pythonVersion = if (Test-Cmd -Name "python") { python --version 2>&1 } else { py --version 2>&1 }
   Write-Host "[OK] Python deja installe: $pythonVersion" -ForegroundColor Green
+}
+
+# Installer jq
+if (-not (Test-Cmd -Name "jq")) {
+  Write-Host "[*] Installation de jq..." -ForegroundColor Yellow
+  $jqInstalled = $false
+  if (Test-Cmd -Name "winget") {
+    Write-Host "  Installation via winget..." -ForegroundColor Gray
+    try {
+      winget install --id jqlang.jq --accept-package-agreements --accept-source-agreements --silent
+      if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] jq installe avec succes via winget" -ForegroundColor Green
+        $jqInstalled = $true
+      } else {
+        Write-Host "[!] Installation via winget echouee (code: $LASTEXITCODE)" -ForegroundColor Yellow
+      }
+    } catch {
+      Write-Host "[!] Erreur lors de l'installation via winget: $_" -ForegroundColor Yellow
+    }
+  }
+  
+  if (-not $jqInstalled) {
+    Write-Host "[!] Impossible d'installer jq automatiquement." -ForegroundColor Yellow
+    Write-Host "   Installez manuellement: winget install jqlang.jq" -ForegroundColor Yellow
+  } else {
+    Refresh-Path
+    if (Test-Cmd -Name "jq") {
+      Write-Host "[OK] jq installe et disponible" -ForegroundColor Green
+    } else {
+      Write-Host "[!] jq installe mais pas encore dans le PATH. Fermez et rouvrez PowerShell." -ForegroundColor Yellow
+    }
+  }
+} else {
+  Write-Host "[OK] jq deja installe: $(jq --version 2>&1)" -ForegroundColor Green
 }
 
 # Installer MongoDB
@@ -302,6 +330,18 @@ if ((Test-Cmd -Name "python") -or (Test-Cmd -Name "py")) {
 } else {
   Write-Host "  [ERREUR] Python: Non installe" -ForegroundColor Red
   $allInstalled = $false
+}
+
+# Verifier jq
+if (Test-Cmd -Name "jq") {
+  try { 
+    $jqVer = jq --version 2>&1
+    Write-Host "  [OK] jq: $jqVer" -ForegroundColor Green 
+  } catch { 
+    Write-Host "  [!] jq: Installe mais erreur lors de la verification" -ForegroundColor Yellow
+  }
+} else {
+  Write-Host "  [!] jq: Non installe (optionnel)" -ForegroundColor Yellow
 }
 
 # Verifier pnpm

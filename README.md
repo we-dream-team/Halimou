@@ -16,7 +16,8 @@ tests/               # Tests Python (placeholder)
 ## Prérequis
 - Git
 - Node.js 18+ et pnpm/yarn/npm
-- Python 3.10+
+- Python 3.10+ (installation manuelle recommandée)
+- jq (outil de traitement JSON)
 - MongoDB (local ou hébergé)
 
 ## 🚀 Installation rapide des prérequis
@@ -36,6 +37,9 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 **Ou télécharger et exécuter localement:**
 - macOS/Linux: `bash install-prerequisites.sh`
 - Windows: `.\install-prerequisites.ps1`
+
+**Pour désinstaller les prérequis (tests):**
+- Windows: `.\uninstall-prerequisites.ps1` (en tant qu'administrateur)
 
 Ces scripts installent automatiquement:
 - ✅ Git
@@ -132,8 +136,29 @@ Health:
 - Index: si les requêtes sont lentes, exécutez `python backend/init_db.py`.
 
 ## Scripts utiles
-- Backend: `uvicorn server:app --reload --port 8001`
-- Frontend: `npm run dev` dans `frontend`
+
+### Développement
+- **Installation complète:** `.\install-and-start.ps1` (Windows) ou `bash install-and-start.sh` (macOS/Linux)
+- **Démarrage rapide:** `.\start-dev.ps1` (Windows) ou `bash start-dev.sh` (macOS/Linux)
+- **Backend seul:** `uvicorn server:app --reload --port 8001`
+- **Frontend seul:** `npm run dev` dans `frontend`
+
+## Services Windows
+
+Pour installer l'application comme services Windows (démarrage automatique) :
+
+```powershell
+# Installer les services (en tant qu'administrateur)
+.\install-windows-services.ps1
+
+# Gérer les services
+.\manage-services.ps1 status
+.\manage-services.ps1 start
+.\manage-services.ps1 stop
+.\manage-services.ps1 restart
+```
+
+Voir [WINDOWS_SERVICES.md](WINDOWS_SERVICES.md) pour plus de détails.
 
 ## Licence
 Projet interne/démo. Adapter selon vos besoins.
