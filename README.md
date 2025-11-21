@@ -25,12 +25,12 @@ tests/               # Tests Python (placeholder)
 
 **macOS / Linux:**
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/VOTRE_REPO/Halimou/main/install-prerequisites.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.sh)
 ```
 
 **Windows (PowerShell):**
 ```powershell
-PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/VOTRE_REPO/Halimou/main/install-prerequisites.ps1'))"
+PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.ps1'))"
 ```
 
 **Ou télécharger et exécuter localement:**

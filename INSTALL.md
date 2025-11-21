@@ -9,7 +9,7 @@ Guide d'installation en **une seule ligne de commande** pour les personnes non i
 Copiez-collez cette ligne dans votre terminal:
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/VOTRE_REPO/Halimou/main/install-prerequisites.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.sh)
 ```
 
 **Ou si vous avez déjà cloné le projet:**
@@ -23,8 +23,12 @@ bash install-prerequisites.sh
 Ouvrez PowerShell (en tant qu'administrateur) et copiez-collez:
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/VOTRE_REPO/Halimou/main/install-prerequisites.ps1'))"
+PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.ps1'))"
 ```
+
+**⚠️ IMPORTANT sur Windows:**
+- Exécutez PowerShell **en tant qu'administrateur** (clic droit > Exécuter en tant qu'administrateur)
+- Si vous avez des erreurs, consultez [TROUBLESHOOTING_WINDOWS.md](TROUBLESHOOTING_WINDOWS.md)
 
 **Ou si vous avez déjà cloné le projet:**
 
@@ -45,7 +49,7 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 ### 1. Cloner le projet
 
 ```bash
-git clone <URL_DU_REPO>
+git clone https://github.com/we-dream-team/Halimou.git
 cd Halimou
 ```
 
@@ -103,10 +107,16 @@ net start MongoDB
    - Vérifiez que le service est installé
    - Consultez les logs: `brew services list` (macOS) ou `sudo systemctl status mongod` (Linux)
 
+4. **Problèmes spécifiques à Windows 11**
+   - Consultez le guide détaillé: [TROUBLESHOOTING_WINDOWS.md](TROUBLESHOOTING_WINDOWS.md)
+   - Assurez-vous d'exécuter PowerShell en tant qu'administrateur
+   - Fermez et rouvrez PowerShell après chaque installation
+
 ## 📞 Besoin d'aide?
 
 Si vous rencontrez des problèmes:
 1. Vérifiez que tous les prérequis sont installés: `git --version`, `node --version`, `python3 --version`
 2. Consultez le [README.md](README.md) pour plus de détails
-3. Vérifiez que MongoDB est démarré et accessible
+3. **Windows 11:** Consultez [TROUBLESHOOTING_WINDOWS.md](TROUBLESHOOTING_WINDOWS.md) pour les problèmes spécifiques
+4. Vérifiez que MongoDB est démarré et accessible
 
