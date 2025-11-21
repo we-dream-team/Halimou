@@ -83,3 +83,37 @@ export const statsApi = {
   export: (startDate?: string, endDate?: string) =>
     api.get('/export', { params: { start_date: startDate, end_date: endDate } }),
 }
+
+// Payroll types and APIs
+export interface Employee {
+  id: string
+  full_name: string
+  role?: string
+  base_salary: number
+  is_active: boolean
+  created_at?: string
+}
+
+export interface PayrollEntry {
+  id?: string
+  employee_id: string
+  period: string // YYYY-MM
+  advances: number
+  paid: number
+  notes?: string
+  created_at?: string
+}
+
+export const employeesApi = {
+  getAll: (includeInactive = false) => api.get<Employee[]>('/employees', { params: { include_inactive: includeInactive } }),
+  create: (data: Omit<Employee, 'id' | 'is_active' | 'created_at'>) => api.post<Employee>('/employees', data),
+  update: (id: string, data: Partial<Employee>) => api.put<Employee>(`/employees/${id}`, data),
+  delete: (id: string) => api.delete(`/employees/${id}`),
+}
+
+export const payrollApi = {
+  getAll: (params?: { employee_id?: string; period?: string }) => api.get<PayrollEntry[]>('/payrolls', { params }),
+  create: (data: Omit<PayrollEntry, 'id' | 'created_at'>) => api.post<PayrollEntry>('/payrolls', data),
+  update: (id: string, data: Partial<PayrollEntry>) => api.put<PayrollEntry>(`/payrolls/${id}`, data),
+  delete: (id: string) => api.delete(`/payrolls/${id}`),
+}

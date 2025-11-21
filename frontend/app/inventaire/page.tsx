@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Calendar, Plus, Minus, Save, Settings, Package } from 'lucide-react'
 import { productApi, inventoryApi, type Product, type InventoryProduct, type DailyInventory } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import WeekBar from '@/components/WeekBar'
 
 export default function InventairePage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -15,9 +17,18 @@ export default function InventairePage() {
   const [saving, setSaving] = useState(false)
   const [showProductModal, setShowProductModal] = useState(false)
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
+  const [saveMessage, setSaveMessage] = useState<string>('')
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSavedHashRef = useRef<string>('')
+  const [showReintegrateModal, setShowReintegrateModal] = useState(false)
+  const [prevDayItems, setPrevDayItems] = useState<Array<{ product_id: string; product_name: string; remaining: number; addQuantity: number; price: number; category: string }>>([])
+  const [loadingPrev, setLoadingPrev] = useState(false)
+  const [hasReintegrated, setHasReintegrated] = useState(false)
 
   useEffect(() => {
     loadData()
+    // nouvelle date => on autorise une nouvelle réintégration
+    setHasReintegrated(false)
   }, [selectedDate])
 
   const loadData = async () => {
@@ -95,31 +106,52 @@ export default function InventairePage() {
     })
   }
 
-  const handleSave = async () => {
-    if (inventoryProducts.length === 0) {
-      alert('Veuillez ajouter au moins un produit')
-      return
+  // Autosave: déclenche un enregistrement après une inactivité brève
+  useEffect(() => {
+    // Ne pas autosave pendant le chargement initial
+    if (loading) return
+    // Hash simple pour éviter les sauvegardes inutiles
+    const hash = JSON.stringify(inventoryProducts)
+    if (hash === lastSavedHashRef.current) return
+
+    // Nettoyer le timer précédent
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
     }
 
-    try {
-      setSaving(true)
-      const inventoryData = { date: selectedDate, products: inventoryProducts }
-
-      if (inventory) {
-        await inventoryApi.update(selectedDate, { products: inventoryProducts })
-      } else {
-        await inventoryApi.create(inventoryData)
+    // Déclencher une sauvegarde après 800ms d'inactivité
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (inventoryProducts.length === 0) {
+        return
       }
+      try {
+        setSaving(true)
+        setSaveMessage('Enregistrement…')
+        const payload = { products: inventoryProducts }
+        if (inventory) {
+          await inventoryApi.update(selectedDate, payload)
+        } else {
+          await inventoryApi.create({ date: selectedDate, products: inventoryProducts })
+        }
+        lastSavedHashRef.current = hash
+        setSaveMessage('Enregistré')
+        // Effacer le message après 1.5s
+        setTimeout(() => setSaveMessage(''), 1500)
+      } catch (error: any) {
+        console.error('Error saving inventory:', error)
+        setSaveMessage(error?.response?.data?.detail || 'Erreur sauvegarde')
+      } finally {
+        setSaving(false)
+      }
+    }, 800)
 
-      alert('Inventaire enregistré avec succès')
-      loadData()
-    } catch (error: any) {
-      console.error('Error saving inventory:', error)
-      alert(error.response?.data?.detail || 'Impossible d\'enregistrer l\'inventaire')
-    } finally {
-      setSaving(false)
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventoryProducts, selectedDate, inventory, loading])
 
   const totalRevenue = inventoryProducts.reduce((sum, p) => sum + p.quantity_sold * p.price, 0)
 
@@ -137,14 +169,45 @@ export default function InventairePage() {
   return (
     <div className="p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Inventaire du jour</h1>
-          <div className="flex items-center text-slate-600">
-            <Calendar size={20} className="mr-2" />
-            <span className="text-lg">
-              {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}
-            </span>
+        {/* Header + Week bar */}
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Inventaire</h1>
+          <WeekBar
+            date={selectedDate}
+            onChange={(d) => setSelectedDate(d)}
+            title="Semaine"
+          />
+          <div className="flex items-center justify-end">
+            <button
+              onClick={async () => {
+                if (hasReintegrated) return
+                const prevDate = format(new Date(new Date(selectedDate).getTime() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+                try {
+                  setLoadingPrev(true)
+                  const prev = await inventoryApi.getByDate(prevDate)
+                  const prevProducts = (prev.data.products || []).filter((p) => (p.quantity_remaining || 0) > 0)
+                  const items = prevProducts.map((p) => ({
+                    product_id: p.product_id,
+                    product_name: p.product_name,
+                    remaining: p.quantity_remaining || 0,
+                    addQuantity: p.quantity_remaining || 0,
+                    price: p.price,
+                    category: p.category,
+                  }))
+                  setPrevDayItems(items)
+                  setShowReintegrateModal(true)
+                } catch (e) {
+                  console.error('Impossible d\'importer les invendus de la veille', e)
+                  alert('Aucun inventaire de la veille trouvé ou erreur réseau')
+                } finally {
+                  setLoadingPrev(false)
+                }
+              }}
+              className={`btn-secondary ${hasReintegrated ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={hasReintegrated || loadingPrev}
+            >
+              {hasReintegrated ? 'Déjà réintégré' : (loadingPrev ? 'Chargement…' : 'Réintégrer les invendus de la veille')}
+            </button>
           </div>
         </div>
 
@@ -170,7 +233,7 @@ export default function InventairePage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900">{product.product_name}</h3>
-                      <p className="text-sm text-slate-600">{product.category} • {product.price.toFixed(2)} €</p>
+                      <p className="text-sm text-slate-600">{product.category} • {formatCurrency(product.price)}</p>
                     </div>
                   </div>
 
@@ -263,7 +326,10 @@ export default function InventairePage() {
               <h3 className="text-xl font-bold mb-2">Résumé du jour</h3>
               <div className="flex items-center justify-between">
                 <span className="text-blue-100">Chiffre d'affaires</span>
-                <span className="text-3xl font-bold">{totalRevenue.toFixed(2)} €</span>
+                <span className="text-3xl font-bold">{formatCurrency(totalRevenue)}</span>
+              </div>
+              <div className="mt-2 text-sm text-blue-100">
+                {saving ? 'Enregistrement automatique…' : saveMessage}
               </div>
             </div>
 
@@ -272,20 +338,6 @@ export default function InventairePage() {
               <button onClick={handleOpenProductModal} className="btn-secondary flex-1">
                 <Settings size={20} className="inline mr-2" />
                 Gérer les produits
-              </button>
-              <button 
-                onClick={handleSave} 
-                disabled={saving}
-                className="btn-primary flex-1"
-              >
-                {saving ? (
-                  <span>Enregistrement...</span>
-                ) : (
-                  <>
-                    <Save size={20} className="inline mr-2" />
-                    Enregistrer
-                  </>
-                )}
               </button>
             </div>
           </>
@@ -323,7 +375,7 @@ export default function InventairePage() {
                         <div>
                           <h3 className="font-semibold text-slate-900">{product.name}</h3>
                           <p className="text-sm text-slate-600">
-                            {product.category} • {product.price.toFixed(2)} €
+                            {product.category} • {formatCurrency(product.price)}
                           </p>
                         </div>
                         <div
@@ -351,6 +403,100 @@ export default function InventairePage() {
                 </button>
                 <button onClick={handleConfirmProducts} className="btn-primary flex-1">
                   Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reintegrate Modal */}
+        {showReintegrateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+              <div className="p-6 border-b border-slate-200">
+                <h2 className="text-2xl font-bold text-slate-900">Réintégrer les invendus de la veille</h2>
+                <p className="text-slate-600 mt-1 text-sm">
+                  Ajustez les quantités à ajouter à la production d’aujourd’hui.
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {prevDayItems.length === 0 ? (
+                  <div className="text-slate-600">Aucun invendu à réintégrer.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {prevDayItems.map((item, idx) => (
+                      <div key={item.product_id} className="p-4 rounded-lg border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-slate-900">{item.product_name}</div>
+                          <div className="text-sm text-slate-600">
+                            Restant: {item.remaining}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm text-slate-700">À ajouter</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={item.remaining}
+                            value={item.addQuantity}
+                            onChange={(e) => {
+                              const v = Math.max(0, Math.min(item.remaining, parseInt(e.target.value || '0', 10)))
+                              setPrevDayItems((prev) => {
+                                const copy = [...prev]
+                                copy[idx] = { ...copy[idx], addQuantity: v }
+                                return copy
+                              })
+                            }}
+                            className="input w-24 text-center"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-slate-200 flex space-x-4">
+                <button onClick={() => setShowReintegrateModal(false)} className="btn-secondary flex-1">
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    setInventoryProducts((curr) => {
+                      const map = new Map<string, InventoryProduct>()
+                      curr.forEach((p) => map.set(p.product_id, { ...p }))
+                      prevDayItems.forEach((it) => {
+                        if (it.addQuantity <= 0) return
+                        const existing = map.get(it.product_id)
+                        if (existing) {
+                          const produced = Math.max(0, existing.quantity_produced + it.addQuantity)
+                          const updated: InventoryProduct = {
+                            ...existing,
+                            quantity_produced: produced,
+                          }
+                          updated.quantity_remaining = Math.max(0, produced - updated.quantity_sold - updated.quantity_wasted)
+                          map.set(it.product_id, updated)
+                        } else {
+                          map.set(it.product_id, {
+                            product_id: it.product_id,
+                            product_name: it.product_name,
+                            category: it.category,
+                            quantity_produced: it.addQuantity,
+                            quantity_sold: 0,
+                            quantity_wasted: 0,
+                            quantity_remaining: it.addQuantity,
+                            price: it.price,
+                          })
+                        }
+                      })
+                      return Array.from(map.values())
+                    })
+                    setShowReintegrateModal(false)
+                    setHasReintegrated(true)
+                  }}
+                  className="btn-primary flex-1"
+                  disabled={prevDayItems.every(it => it.addQuantity <= 0)}
+                >
+                  Réintégrer
                 </button>
               </div>
             </div>

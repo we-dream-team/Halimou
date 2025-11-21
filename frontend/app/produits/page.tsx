@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, Package } from 'lucide-react'
 import { productApi, type Product } from '@/lib/api'
+import { CURRENCY_SYMBOL, formatCurrency } from '@/lib/currency'
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     category: 'viennoiserie',
@@ -27,7 +29,7 @@ export default function ProduitsPage() {
       setProducts(response.data)
     } catch (error) {
       console.error('Error loading products:', error)
-      alert('Impossible de charger les produits')
+      setToast({ message: 'Impossible de charger les produits', type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -56,13 +58,13 @@ export default function ProduitsPage() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert('Le nom du produit est requis')
+      setToast({ message: 'Le nom du produit est requis', type: 'error' })
       return
     }
 
     const price = parseFloat(formData.price)
     if (isNaN(price) || price <= 0) {
-      alert('Le prix doit être un nombre valide')
+      setToast({ message: 'Le prix doit être un nombre valide', type: 'error' })
       return
     }
 
@@ -76,17 +78,17 @@ export default function ProduitsPage() {
 
       if (editingProduct) {
         await productApi.update(editingProduct.id, productData)
-        alert('Produit mis à jour')
+        setToast({ message: 'Produit mis à jour', type: 'success' })
       } else {
         await productApi.create(productData)
-        alert('Produit ajouté')
+        setToast({ message: 'Produit ajouté', type: 'success' })
       }
 
       setShowModal(false)
       loadProducts()
     } catch (error: any) {
       console.error('Error saving product:', error)
-      alert(error.response?.data?.detail || 'Impossible de sauvegarder le produit')
+      setToast({ message: error.response?.data?.detail || 'Impossible de sauvegarder le produit', type: 'error' })
     }
   }
 
@@ -97,13 +99,20 @@ export default function ProduitsPage() {
 
     try {
       await productApi.delete(product.id)
-      alert('Produit supprimé')
+      setToast({ message: 'Produit supprimé', type: 'success' })
       loadProducts()
     } catch (error: any) {
       console.error('Error deleting product:', error)
-      alert('Impossible de supprimer le produit')
+      setToast({ message: 'Impossible de supprimer le produit', type: 'error' })
     }
   }
+
+  // Disparition auto du toast
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   if (loading) {
     return (
@@ -152,7 +161,7 @@ export default function ProduitsPage() {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900 mb-1">{product.name}</h3>
                     <p className="text-sm text-slate-600 capitalize mb-2">{product.category}</p>
-                    <p className="text-xl font-bold text-success">{product.price.toFixed(2)} €</p>
+                    <p className="text-xl font-bold text-success">{formatCurrency(product.price)}</p>
                   </div>
                   <div className="flex space-x-2">
                     <button
@@ -221,7 +230,7 @@ export default function ProduitsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Prix (€)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Prix ({CURRENCY_SYMBOL})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -258,6 +267,21 @@ export default function ProduitsPage() {
           </div>
         )}
       </div>
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div
+            className={`
+              px-4 py-3 rounded-xl shadow-lg border
+              ${toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : ''}
+              ${toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : ''}
+              ${toast.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : ''}
+            `}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

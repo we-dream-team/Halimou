@@ -79,6 +79,47 @@ class StatsSummary(BaseModel):
     total_produced: int
     products_stats: List[dict]
 
+# Payroll models
+class Employee(BaseModel):
+    id: Optional[str] = None
+    full_name: str
+    role: Optional[str] = None
+    base_salary: float = 0.0
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+class EmployeeCreate(BaseModel):
+    full_name: str
+    role: Optional[str] = None
+    base_salary: float = 0.0
+
+class EmployeeUpdate(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    base_salary: Optional[float] = None
+    is_active: Optional[bool] = None
+
+class PayrollEntry(BaseModel):
+    id: Optional[str] = None
+    employee_id: str
+    period: str  # Format YYYY-MM
+    advances: float = 0.0
+    paid: float = 0.0
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+class PayrollCreate(BaseModel):
+    employee_id: str
+    period: str
+    advances: float = 0.0
+    paid: float = 0.0
+    notes: Optional[str] = None
+
+class PayrollUpdate(BaseModel):
+    advances: Optional[float] = None
+    paid: Optional[float] = None
+    notes: Optional[str] = None
+
 # Helper function to convert ObjectId to string
 def serialize_doc(doc):
     if doc and "_id" in doc:
@@ -291,6 +332,86 @@ async def export_data(start_date: Optional[str] = None, end_date: Optional[str] 
         "inventories": [serialize_doc(inv) for inv in inventories],
         "products": [serialize_doc(p) for p in products]
     }
+
+# Employees Endpoints
+@api_router.post("/employees", response_model=Employee)
+async def create_employee(employee: EmployeeCreate):
+    data = employee.dict()
+    data["created_at"] = datetime.utcnow()
+    # Ensure active flag present
+    data["is_active"] = True
+    result = await db.employees.insert_one(data)
+    created = await db.employees.find_one({"_id": result.inserted_id})
+    return Employee(**serialize_doc(created))
+
+@api_router.get("/employees", response_model=List[Employee])
+async def list_employees(include_inactive: bool = False):
+    if include_inactive:
+        query = {}
+    else:
+        # Consider employees without is_active as active for backward-compatibility
+        query = {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]}
+    docs = await db.employees.find(query).sort("full_name", 1).to_list(1000)
+    return [Employee(**serialize_doc(d)) for d in docs]
+
+@api_router.put("/employees/{employee_id}", response_model=Employee)
+async def update_employee(employee_id: str, employee_update: EmployeeUpdate):
+    update_data = {k: v for k, v in employee_update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.employees.update_one({"_id": ObjectId(employee_id)}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    updated = await db.employees.find_one({"_id": ObjectId(employee_id)})
+    return Employee(**serialize_doc(updated))
+
+@api_router.delete("/employees/{employee_id}")
+async def delete_employee(employee_id: str):
+    result = await db.employees.delete_one({"_id": ObjectId(employee_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return {"message": "Employee deleted successfully"}
+
+# Payroll Endpoints
+@api_router.post("/payrolls", response_model=PayrollEntry)
+async def create_payroll(entry: PayrollCreate):
+    # ensure employee exists
+    emp = await db.employees.find_one({"_id": ObjectId(entry.employee_id)})
+    if not emp:
+        raise HTTPException(status_code=400, detail="Employee does not exist")
+    data = entry.dict()
+    data["created_at"] = datetime.utcnow()
+    result = await db.payrolls.insert_one(data)
+    created = await db.payrolls.find_one({"_id": result.inserted_id})
+    return PayrollEntry(**serialize_doc(created))
+
+@api_router.get("/payrolls", response_model=List[PayrollEntry])
+async def list_payrolls(employee_id: Optional[str] = None, period: Optional[str] = None):
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if period:
+        query["period"] = period
+    docs = await db.payrolls.find(query).sort("period", -1).to_list(1000)
+    return [PayrollEntry(**serialize_doc(d)) for d in docs]
+
+@api_router.put("/payrolls/{payroll_id}", response_model=PayrollEntry)
+async def update_payroll(payroll_id: str, entry_update: PayrollUpdate):
+    update_data = {k: v for k, v in entry_update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.payrolls.update_one({"_id": ObjectId(payroll_id)}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Payroll entry not found")
+    updated = await db.payrolls.find_one({"_id": ObjectId(payroll_id)})
+    return PayrollEntry(**serialize_doc(updated))
+
+@api_router.delete("/payrolls/{payroll_id}")
+async def delete_payroll(payroll_id: str):
+    result = await db.payrolls.delete_one({"_id": ObjectId(payroll_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Payroll entry not found")
+    return {"message": "Payroll entry deleted successfully"}
 
 # Health check
 @api_router.get("/")

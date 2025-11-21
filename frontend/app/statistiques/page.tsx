@@ -1,16 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { format, subDays } from 'date-fns'
+import { format, subDays, startOfWeek, addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Trash2, Package } from 'lucide-react'
 import { statsApi, inventoryApi, type StatsSummary, type DailyInventory } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import WeekBar from '@/components/WeekBar'
 
 export default function StatistiquesPage() {
   const [stats, setStats] = useState<StatsSummary | null>(null)
   const [recentInventories, setRecentInventories] = useState<DailyInventory[]>([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<'7' | '30' | 'all'>('7')
+  const [period, setPeriod] = useState<'7' | '30' | 'all' | 'week'>('week')
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   useEffect(() => {
     loadStats()
@@ -19,16 +22,24 @@ export default function StatistiquesPage() {
   const loadStats = async () => {
     try {
       setLoading(true)
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const todayStr = format(new Date(), 'yyyy-MM-dd')
       let startDate = ''
+      let endDate = todayStr
 
-      if (period === '7') {
+      if (period === 'week') {
+        const ws = startOfWeek(new Date(selectedDate), { weekStartsOn: 1, locale: fr })
+        startDate = format(ws, 'yyyy-MM-dd')
+        endDate = format(addDays(ws, 6), 'yyyy-MM-dd')
+      } else if (period === '7') {
         startDate = format(subDays(new Date(), 7), 'yyyy-MM-dd')
       } else if (period === '30') {
         startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+      } else {
+        startDate = ''
+        endDate = todayStr
       }
 
-      const params = period !== 'all' ? { startDate, endDate: today } : {}
+      const params = period !== 'all' ? { startDate, endDate } : {}
 
       const [statsRes, inventoriesRes] = await Promise.all([
         statsApi.getSummary(params.startDate, params.endDate),
@@ -47,16 +58,21 @@ export default function StatistiquesPage() {
 
   const handleExport = async () => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const todayStr = format(new Date(), 'yyyy-MM-dd')
       let startDate = ''
+      let endDate = todayStr
 
-      if (period === '7') {
+      if (period === 'week') {
+        const ws = startOfWeek(new Date(selectedDate), { weekStartsOn: 1, locale: fr })
+        startDate = format(ws, 'yyyy-MM-dd')
+        endDate = format(addDays(ws, 6), 'yyyy-MM-dd')
+      } else if (period === '7') {
         startDate = format(subDays(new Date(), 7), 'yyyy-MM-dd')
       } else if (period === '30') {
         startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd')
       }
 
-      const response = await statsApi.export(startDate || undefined, today)
+      const response = await statsApi.export(startDate || undefined, endDate)
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -95,8 +111,8 @@ export default function StatistiquesPage() {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Header + Week bar */}
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Statistiques</h1>
             <p className="text-slate-600">Analysez vos performances</p>
@@ -106,10 +122,19 @@ export default function StatistiquesPage() {
             Exporter
           </button>
         </div>
+        <WeekBar
+          date={selectedDate}
+          onChange={(d) => {
+            setSelectedDate(d)
+            setPeriod('week')
+          }}
+          title="Semaine"
+        />
 
         {/* Period Selector */}
         <div className="flex space-x-3 mb-8">
           {[
+            { value: 'week', label: 'Semaine' },
             { value: '7', label: '7 jours' },
             { value: '30', label: '30 jours' },
             { value: 'all', label: 'Tout' },
@@ -140,7 +165,7 @@ export default function StatistiquesPage() {
                   <TrendingUp size={20} className="text-success" />
                 </div>
                 <p className="text-sm text-slate-600 mb-1">Chiffre d'affaires</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.total_sales.toFixed(2)} €</p>
+                <p className="text-3xl font-bold text-slate-900">{formatCurrency(stats.total_sales)}</p>
               </div>
 
               <div className="card border-t-4 border-t-primary">
@@ -193,7 +218,7 @@ export default function StatistiquesPage() {
                           <p className="text-sm text-slate-600 capitalize">{product.category}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-success">{product.total_revenue.toFixed(2)} €</p>
+                          <p className="text-2xl font-bold text-success">{formatCurrency(product.total_revenue)}</p>
                           <p className="text-sm text-slate-600">Revenu total</p>
                         </div>
                       </div>
@@ -205,13 +230,13 @@ export default function StatistiquesPage() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm text-slate-600 mb-1">Taux de vente</p>
-                          <p className="text-xl font-bold text-success">
+                        <p className="text-xl font-bold text-success">
                             {getSoldPercentage(product.total_sold, product.total_produced)}%
                           </p>
                         </div>
                         <div className="text-center">
                           <p className="text-sm text-slate-600 mb-1">Gaspillage</p>
-                          <p className="text-xl font-bold text-danger">
+                        <p className="text-xl font-bold text-danger">
                             {getWastePercentage(product.total_wasted, product.total_produced)}%
                           </p>
                         </div>
@@ -254,7 +279,7 @@ export default function StatistiquesPage() {
                           {format(new Date(inventory.date), 'dd MMM yyyy', { locale: fr })}
                         </p>
                         <p className="text-xl font-bold text-success">
-                          {inventory.total_revenue.toFixed(2)} €
+                          {formatCurrency(inventory.total_revenue)}
                         </p>
                       </div>
                       <p className="text-sm text-slate-600">{inventory.products.length} produit(s)</p>
