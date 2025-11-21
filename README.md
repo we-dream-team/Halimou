@@ -40,6 +40,7 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 
 **Pour désinstaller les prérequis (tests):**
 - Windows: `.\uninstall-prerequisites.ps1` (en tant qu'administrateur)
+- macOS/Linux: `bash uninstall-prerequisites.sh`
 
 Ces scripts installent automatiquement:
 - ✅ Git
