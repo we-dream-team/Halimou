@@ -20,8 +20,11 @@ function Test-PythonWorks {
   param([string]$PythonCmd)
   
   try {
-    # Tester avec une commande simple qui ne redirige pas vers le Microsoft Store
-    $result = Invoke-Expression "$PythonCmd -c `"import sys; print(sys.version_info.major)`" 2>&1"
+    # Nettoyer le chemin
+    $cleanPath = $PythonCmd.Trim('"', "'")
+    
+    # Tester avec une commande simple
+    $result = & $cleanPath -c "import sys; print(sys.version_info.major)" 2>&1
     if ($LASTEXITCODE -eq 0 -and $result -match "^3") {
       return $true
     }
@@ -113,7 +116,8 @@ if (-not (Test-Cmd -Name "node")) {
 
 # Afficher les versions trouvees
 try {
-  $pyVersion = Invoke-Expression "$pythonCmd --version 2>&1"
+  $cleanPythonPath = $pythonCmd.Trim('"', "'")
+  $pyVersion = & $cleanPythonPath --version 2>&1
   Write-Host "[OK] Python trouve: $pythonCmd ($pyVersion)" -ForegroundColor Green
 } catch {
   Write-Host "[OK] Python trouve: $pythonCmd" -ForegroundColor Green
@@ -131,7 +135,8 @@ if (-not (Test-Path ".venv")) {
   
   # Tester d'abord que Python fonctionne
   try {
-    $testResult = Invoke-Expression "$pythonCmd -c `"import sys; print('OK')`" 2>&1"
+    $cleanPythonPath = $pythonCmd.Trim('"', "'")
+    $testResult = & $cleanPythonPath -c "import sys; print('OK')" 2>&1
     if ($LASTEXITCODE -ne 0 -or $testResult -notmatch "OK") {
       throw "Python ne peut pas executer de commandes"
     }
@@ -147,8 +152,11 @@ if (-not (Test-Path ".venv")) {
   }
   
   try {
-    $venvCmd = "$pythonCmd -m venv .venv"
-    $result = Invoke-Expression $venvCmd 2>&1
+    # Nettoyer le chemin Python
+    $cleanPythonPath = $pythonCmd.Trim('"', "'")
+    
+    # Creer l'environnement virtuel
+    $result = & $cleanPythonPath -m venv .venv 2>&1
     if ($LASTEXITCODE -ne 0) {
       throw "Code de retour: $LASTEXITCODE"
     }
@@ -181,10 +189,34 @@ if (-not (Test-Path $activateScript)) {
   exit 1
 }
 
+# Fonction pour executer Python correctement
+function Invoke-Python {
+  param(
+    [string]$PythonPath,
+    [string[]]$Arguments
+  )
+  
+  # Nettoyer le chemin Python (enlever les guillemets si presents)
+  $cleanPath = $PythonPath.Trim('"', "'")
+  
+  # Executer avec l'operateur &
+  & $cleanPath $Arguments
+}
+
 # Utiliser Python de l'environnement virtuel si disponible
+$pythonExe = $null
 if (Test-Path $pythonInVenv) {
-  $pythonCmd = "`"$pythonInVenv`""
+  $pythonExe = $pythonInVenv
   Write-Host "  [OK] Utilisation de Python de l'environnement virtuel" -ForegroundColor Green
+} else {
+  # Extraire le chemin sans guillemets de $pythonCmd
+  if ($pythonCmd -match '^"(.+)"$') {
+    $pythonExe = $matches[1]
+  } elseif ($pythonCmd -match "^'(.+)'$") {
+    $pythonExe = $matches[1]
+  } else {
+    $pythonExe = $pythonCmd
+  }
 }
 
 Write-Host "  Activation de l'environnement virtuel..." -ForegroundColor Yellow
@@ -196,21 +228,27 @@ try {
 
 Write-Host "  Mise a jour de pip..." -ForegroundColor Yellow
 try {
-  $pipCmd = "$pythonCmd -m pip install --upgrade pip --quiet"
-  Invoke-Expression $pipCmd
-  Write-Host "  [OK] pip mis a jour" -ForegroundColor Green
+  Invoke-Python -PythonPath $pythonExe -Arguments @("-m", "pip", "install", "--upgrade", "pip", "--quiet")
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "  [OK] pip mis a jour" -ForegroundColor Green
+  } else {
+    throw "Code de retour: $LASTEXITCODE"
+  }
 } catch {
   Write-Host "  [!] Erreur lors de la mise a jour de pip: $_" -ForegroundColor Yellow
+  Write-Host "      (Ce n'est pas critique, on continue...)" -ForegroundColor Gray
 }
 
 Write-Host "  Installation des dependances Python..." -ForegroundColor Yellow
 try {
-  $pipInstallCmd = "$pythonCmd -m pip install -r requirements.txt"
-  Invoke-Expression $pipInstallCmd
+  Invoke-Python -PythonPath $pythonExe -Arguments @("-m", "pip", "install", "-r", "requirements.txt")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Code de retour: $LASTEXITCODE"
+  }
   Write-Host "  [OK] Dependances Python installees" -ForegroundColor Green
 } catch {
   Write-Host "  [ERREUR] Erreur lors de l'installation des dependances: $_" -ForegroundColor Red
-  Write-Host "  Commande utilisee: $pythonCmd -m pip install -r requirements.txt" -ForegroundColor Yellow
+  Write-Host "  Commande utilisee: $pythonExe -m pip install -r requirements.txt" -ForegroundColor Yellow
   exit 1
 }
 
@@ -236,11 +274,14 @@ Write-Host "  Database: $env:DB_NAME" -ForegroundColor Cyan
 
 Write-Host "  Initialisation des index MongoDB..." -ForegroundColor Yellow
 try { 
-  $initCmd = "$pythonCmd init_db.py"
-  Invoke-Expression $initCmd
-  Write-Host "  [OK] Index MongoDB initialises" -ForegroundColor Green
+  Invoke-Python -PythonPath $pythonExe -Arguments @("init_db.py")
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "  [OK] Index MongoDB initialises" -ForegroundColor Green
+  } else {
+    throw "Code de retour: $LASTEXITCODE"
+  }
 } catch { 
-  Write-Host "  [!] Erreur lors de l'initialisation MongoDB: $($_.Exception.Message)" -ForegroundColor Yellow
+  Write-Host "  [!] Erreur lors de l'initialisation MongoDB: $_" -ForegroundColor Yellow
   Write-Host "     Assurez-vous que MongoDB est demarre" -ForegroundColor Yellow
 }
 
@@ -292,11 +333,7 @@ Write-Host ""
 Write-Host "Terminal 1 - Backend:" -ForegroundColor Cyan
 Write-Host "  cd backend" -ForegroundColor White
 Write-Host "  .venv\Scripts\Activate.ps1" -ForegroundColor White
-if ($pythonCmd -match "python.exe") {
-  Write-Host "  $pythonCmd -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload" -ForegroundColor White
-} else {
-  Write-Host "  python -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload" -ForegroundColor White
-}
+Write-Host "  python -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload" -ForegroundColor White
 Write-Host ""
 Write-Host "Terminal 2 - Frontend:" -ForegroundColor Cyan
 Write-Host "  cd frontend" -ForegroundColor White
