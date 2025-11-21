@@ -45,9 +45,15 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 Ces scripts installent automatiquement:
 - ✅ Git
 - ✅ Node.js (LTS)
-- ✅ Python 3.10+
-- ✅ MongoDB
+- ⚠️ **Python 3.10+** (installation manuelle recommandée sur Windows)
+- ✅ jq (outil de traitement JSON)
+- ✅ MongoDB (optionnel, peut utiliser MongoDB Atlas)
 - ✅ pnpm (gestionnaire de paquets Node.js)
+
+**✨ Fonctionnalité automatique :** Après l'installation des prérequis, les scripts proposent automatiquement de :
+1. Cloner le projet depuis GitHub
+2. Installer les dépendances (backend + frontend)
+3. Démarrer l'application (backend + frontend)
 
 ### Option 2: Installation manuelle
 
@@ -70,6 +76,28 @@ NEXT_PUBLIC_API_URL=http://localhost:8001
 ```
 
 ## Installation & lancement
+
+### 🚀 Installation automatique complète (recommandé)
+
+Les scripts `install-prerequisites.sh` (macOS/Linux) et `install-prerequisites.ps1` (Windows) font tout automatiquement :
+1. Installent les prérequis
+2. Clonent le projet
+3. Installent les dépendances
+4. Démarrant l'application
+
+**macOS/Linux:**
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.sh)
+```
+
+**Windows:**
+```powershell
+PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.ps1'))"
+```
+
+### Installation manuelle étape par étape
+
+Si vous préférez installer manuellement :
 
 ### 1) Backend (FastAPI)
 Installer les dépendances et lancer l’API sur le port 8001.

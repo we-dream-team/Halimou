@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Script d'installation automatique des prérequis pour Halimou
 # Usage: 
-#   En ligne: bash <(curl -sSL https://raw.githubusercontent.com/VOTRE_REPO/Halimou/main/install-prerequisites.sh)
+#   En ligne: bash <(curl -sSL https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.sh)
 #   Local: bash install-prerequisites.sh
+# 
+# Ce script installe les prérequis et propose automatiquement de cloner le projet
+# et démarrer l'application.
 
 set -euo pipefail
 
@@ -62,6 +65,14 @@ install_macos() {
     brew install python@3.11
   else
     echo "✅ Python déjà installé: $(python3 --version)"
+  fi
+  
+  # Installer jq
+  if ! command_exists jq; then
+    echo "📦 Installation de jq..."
+    brew install jq
+  else
+    echo "✅ jq déjà installé: $(jq --version)"
   fi
   
   # Installer MongoDB
@@ -126,6 +137,14 @@ install_linux() {
     $SUDO apt-get install -y python3 python3-pip python3-venv
   else
     echo "✅ Python déjà installé: $(python3 --version)"
+  fi
+  
+  # Installer jq
+  if ! command_exists jq; then
+    echo "📦 Installation de jq..."
+    $SUDO apt-get install -y jq
+  else
+    echo "✅ jq déjà installé: $(jq --version)"
   fi
   
   # Installer MongoDB (optionnel - peut utiliser MongoDB Atlas)
@@ -196,15 +215,115 @@ esac
 echo ""
 echo "✅ Installation terminée!"
 echo ""
-echo "📋 Vérification des versions installées:"
-echo "  Git: $(git --version 2>/dev/null || echo '❌ Non installé')"
-echo "  Node.js: $(node --version 2>/dev/null || echo '❌ Non installé')"
-echo "  Python: $(python3 --version 2>/dev/null || echo '❌ Non installé')"
-echo "  pnpm: $(pnpm --version 2>/dev/null || echo '❌ Non installé')"
-echo "  MongoDB: $(mongod --version 2>/dev/null | head -n1 || echo '❌ Non installé')"
+
+# Vérifier les prérequis essentiels
+ESSENTIAL_INSTALLED=true
+if ! command_exists git; then
+  echo "❌ Git: Non installé"
+  ESSENTIAL_INSTALLED=false
+else
+  echo "✅ Git: $(git --version)"
+fi
+
+if ! command_exists node; then
+  echo "❌ Node.js: Non installé"
+  ESSENTIAL_INSTALLED=false
+else
+  echo "✅ Node.js: $(node --version)"
+fi
+
+if ! command_exists python3; then
+  echo "❌ Python: Non installé"
+  ESSENTIAL_INSTALLED=false
+else
+  echo "✅ Python: $(python3 --version)"
+fi
+
+if command_exists jq; then
+  echo "✅ jq: $(jq --version)"
+else
+  echo "⚠️  jq: Non installé (optionnel)"
+fi
+
+if command_exists pnpm; then
+  echo "✅ pnpm: $(pnpm --version)"
+else
+  echo "⚠️  pnpm: Non installé (optionnel, npm peut être utilisé)"
+fi
+
+if command_exists mongod; then
+  echo "✅ MongoDB: $(mongod --version 2>/dev/null | head -n1)"
+else
+  echo "⚠️  MongoDB: Non installé (optionnel, peut utiliser MongoDB Atlas)"
+fi
+
 echo ""
-echo "🚀 Vous pouvez maintenant:"
-echo "  1. Cloner le projet: git clone <URL_DU_REPO>"
-echo "  2. Lancer l'installation: bash install-and-start.sh"
-echo ""
+
+# Proposer de cloner et démarrer automatiquement
+if [ "$ESSENTIAL_INSTALLED" = true ]; then
+  echo "🚀 Voulez-vous que je clone le projet et démarre l'application maintenant?"
+  echo "   (Le script va cloner le repo, installer les dépendances et démarrer l'app)"
+  read -p "Continuer? (o/N) " -n 1 -r
+  echo ""
+  
+  if [[ $REPLY =~ ^[Oo]$ ]]; then
+    echo ""
+    echo "📦 Clonage du projet..."
+    
+    # Déterminer le dossier de destination
+    CURRENT_DIR=$(pwd)
+    PROJECT_DIR="$CURRENT_DIR/Halimou"
+    
+    # Vérifier si le dossier existe déjà
+    if [ -d "$PROJECT_DIR" ]; then
+      echo "⚠️  Le dossier Halimou existe déjà."
+      read -p "Voulez-vous le supprimer et re-cloner? (o/N) " -n 1 -r
+      echo ""
+      if [[ $REPLY =~ ^[Oo]$ ]]; then
+        rm -rf "$PROJECT_DIR"
+        echo "✅ Dossier supprimé"
+      else
+        echo "📁 Utilisation du dossier existant"
+      fi
+    fi
+    
+    # Cloner le projet si le dossier n'existe pas
+    if [ ! -d "$PROJECT_DIR" ]; then
+      if git clone https://github.com/we-dream-team/Halimou.git "$PROJECT_DIR"; then
+        echo "✅ Projet cloné avec succès"
+      else
+        echo "❌ Impossible de cloner le projet"
+        echo "   Clonez manuellement: git clone https://github.com/we-dream-team/Halimou.git"
+        exit 1
+      fi
+    fi
+    
+    # Aller dans le dossier du projet
+    cd "$PROJECT_DIR"
+    
+    echo ""
+    echo "🚀 Installation et démarrage de l'application..."
+    echo ""
+    
+    # Lancer le script d'installation et démarrage
+    if [ -f "./install-and-start.sh" ]; then
+      bash ./install-and-start.sh
+    else
+      echo "❌ Script install-and-start.sh introuvable dans le projet cloné."
+      echo "   Lancez manuellement: cd Halimou puis bash install-and-start.sh"
+    fi
+  else
+    echo ""
+    echo "📝 Pour cloner et démarrer manuellement:"
+    echo "   git clone https://github.com/we-dream-team/Halimou.git"
+    echo "   cd Halimou"
+    echo "   bash install-and-start.sh"
+    echo ""
+  fi
+else
+  echo ""
+  echo "⚠️  Certains prérequis essentiels ne sont pas installés."
+  echo "   Installez-les d'abord, puis relancez ce script pour cloner et démarrer l'application."
+  echo ""
+fi
 

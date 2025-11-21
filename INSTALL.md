@@ -54,12 +54,23 @@ PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClie
 
 - ✅ **Git** - Pour cloner le projet
 - ✅ **Node.js 18+** - Pour le frontend
-- ⚠️ **Python 3.10+** - Pour le backend (installation manuelle recommandée)
+- ⚠️ **Python 3.10+** - Pour le backend (installation manuelle recommandée sur Windows)
 - ✅ **jq** - Outil de traitement JSON
-- ✅ **MongoDB** - Base de données
+- ✅ **MongoDB** - Base de données (optionnel, peut utiliser MongoDB Atlas)
 - ✅ **pnpm** - Gestionnaire de paquets Node.js
 
-## 🎯 Après l'installation des prérequis
+## ✨ Installation automatique complète
+
+**Les scripts proposent automatiquement de cloner le projet et démarrer l'application !**
+
+Après l'installation des prérequis, les scripts vous demanderont si vous voulez :
+1. ✅ Cloner le projet depuis GitHub
+2. ✅ Installer les dépendances (backend + frontend)
+3. ✅ Démarrer l'application (backend + frontend)
+
+**Répondez "o" (oui) pour tout faire automatiquement !**
+
+## 🎯 Installation manuelle (si vous avez refusé l'installation automatique)
 
 ### 1. Cloner le projet
 
