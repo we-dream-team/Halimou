@@ -109,15 +109,15 @@ export default function StatistiquesPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header + Week bar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Statistiques</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Statistiques</h1>
             <p className="text-slate-600">Analysez vos performances</p>
           </div>
-          <button onClick={handleExport} className="btn-secondary">
+          <button onClick={handleExport} className="btn-secondary w-full sm:w-auto">
             <Download size={20} className="inline mr-2" />
             Exporter
           </button>
@@ -132,7 +132,7 @@ export default function StatistiquesPage() {
         />
 
         {/* Period Selector */}
-        <div className="flex space-x-3 mb-8">
+        <div className="flex flex-wrap gap-2 md:gap-3 mb-6 md:mb-8">
           {[
             { value: 'week', label: 'Semaine' },
             { value: '7', label: '7 jours' },
@@ -142,7 +142,7 @@ export default function StatistiquesPage() {
             <button
               key={item.value}
               onClick={() => setPeriod(item.value as any)}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 md:px-6 py-2 rounded-lg font-medium transition-all text-sm md:text-base ${
                 period === item.value
                   ? 'bg-primary text-white shadow-md'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
@@ -223,7 +223,7 @@ export default function StatistiquesPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                         <div className="text-center">
                           <p className="text-sm text-slate-600 mb-1">Moyenne/jour</p>
                           <p className="text-xl font-bold text-slate-900">{product.avg_sold_per_day}</p>

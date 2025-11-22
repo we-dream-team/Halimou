@@ -3,25 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
   body {
     @apply bg-slate-50 text-slate-900;
+    touch-action: manipulation;
+  }
+  
+  button, a {
+    touch-action: manipulation;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+    @apply bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm md:text-base;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition-colors;
+    @apply bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition-colors text-sm md:text-base;
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6;
   }
   
   .input {
-    @apply w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all;
+    @apply w-full px-3 md:px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-sm md:text-base;
   }
 }

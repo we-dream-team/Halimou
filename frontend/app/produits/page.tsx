@@ -126,15 +126,15 @@ export default function ProduitsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Catalogue Produits</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Catalogue Produits</h1>
             <p className="text-slate-600">{products.length} produit(s)</p>
           </div>
-          <button onClick={() => handleOpenModal()} className="btn-primary">
+          <button onClick={() => handleOpenModal()} className="btn-primary w-full sm:w-auto">
             <Plus size={20} className="inline mr-2" />
             Ajouter un produit
           </button>
@@ -190,8 +190,8 @@ export default function ProduitsPage() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-lg w-full">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl max-w-lg w-full my-4">
               <div className="p-6 border-b border-slate-200">
                 <h2 className="text-2xl font-bold text-slate-900">
                   {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
@@ -269,7 +269,7 @@ export default function ProduitsPage() {
       </div>
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 max-w-sm">
           <div
             className={`
               px-4 py-3 rounded-xl shadow-lg border

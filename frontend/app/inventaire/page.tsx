@@ -167,17 +167,17 @@ export default function InventairePage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header + Week bar */}
         <div className="mb-4">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Inventaire</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Inventaire</h1>
           <WeekBar
             date={selectedDate}
             onChange={(d) => setSelectedDate(d)}
             title="Semaine"
           />
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end mt-4">
             <button
               onClick={async () => {
                 if (hasReintegrated) return
@@ -203,10 +203,10 @@ export default function InventairePage() {
                   setLoadingPrev(false)
                 }
               }}
-              className={`btn-secondary ${hasReintegrated ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`btn-secondary text-sm md:text-base ${hasReintegrated ? 'opacity-60 cursor-not-allowed' : ''}`}
               disabled={hasReintegrated || loadingPrev}
             >
-              {hasReintegrated ? 'Déjà réintégré' : (loadingPrev ? 'Chargement…' : 'Réintégrer les invendus de la veille')}
+              {hasReintegrated ? 'Déjà réintégré' : (loadingPrev ? 'Chargement…' : <><span className="hidden sm:inline">Réintégrer les invendus de la veille</span><span className="sm:hidden">Réintégrer</span></>)}
             </button>
           </div>
         </div>
@@ -237,82 +237,88 @@ export default function InventairePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Produit</label>
-                      <div className="flex items-center space-x-2">
+                      <label className="block text-xs md:text-sm font-medium text-slate-700 mb-2">Produit</label>
+                      <div className="flex items-center space-x-1 md:space-x-2">
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_produced', product.quantity_produced - 1)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+                          className="p-1.5 md:p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors touch-manipulation"
+                          aria-label="Diminuer"
                         >
-                          <Minus size={16} />
+                          <Minus size={14} className="md:w-4 md:h-4" />
                         </button>
                         <input
                           type="number"
                           value={product.quantity_produced}
                           onChange={(e) => updateQuantity(product.product_id, 'quantity_produced', parseInt(e.target.value) || 0)}
-                          className="input text-center"
+                          className="input text-center flex-1 min-w-0"
                         />
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_produced', product.quantity_produced + 1)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+                          className="p-1.5 md:p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors touch-manipulation"
+                          aria-label="Augmenter"
                         >
-                          <Plus size={16} />
+                          <Plus size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Vendu</label>
-                      <div className="flex items-center space-x-2">
+                      <label className="block text-xs md:text-sm font-medium text-slate-700 mb-2">Vendu</label>
+                      <div className="flex items-center space-x-1 md:space-x-2">
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_sold', product.quantity_sold - 1)}
-                          className="p-2 rounded-lg bg-green-100 hover:bg-green-200 transition-colors text-green-700"
+                          className="p-1.5 md:p-2 rounded-lg bg-green-100 hover:bg-green-200 transition-colors text-green-700 touch-manipulation"
+                          aria-label="Diminuer"
                         >
-                          <Minus size={16} />
+                          <Minus size={14} className="md:w-4 md:h-4" />
                         </button>
                         <input
                           type="number"
                           value={product.quantity_sold}
                           onChange={(e) => updateQuantity(product.product_id, 'quantity_sold', parseInt(e.target.value) || 0)}
-                          className="input text-center"
+                          className="input text-center flex-1 min-w-0"
                         />
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_sold', product.quantity_sold + 1)}
-                          className="p-2 rounded-lg bg-green-100 hover:bg-green-200 transition-colors text-green-700"
+                          className="p-1.5 md:p-2 rounded-lg bg-green-100 hover:bg-green-200 transition-colors text-green-700 touch-manipulation"
+                          aria-label="Augmenter"
                         >
-                          <Plus size={16} />
+                          <Plus size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Jeté</label>
-                      <div className="flex items-center space-x-2">
+                      <label className="block text-xs md:text-sm font-medium text-slate-700 mb-2">Jeté</label>
+                      <div className="flex items-center space-x-1 md:space-x-2">
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_wasted', product.quantity_wasted - 1)}
-                          className="p-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-red-700"
+                          className="p-1.5 md:p-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-red-700 touch-manipulation"
+                          aria-label="Diminuer"
                         >
-                          <Minus size={16} />
+                          <Minus size={14} className="md:w-4 md:h-4" />
                         </button>
                         <input
                           type="number"
                           value={product.quantity_wasted}
                           onChange={(e) => updateQuantity(product.product_id, 'quantity_wasted', parseInt(e.target.value) || 0)}
-                          className="input text-center"
+                          className="input text-center flex-1 min-w-0"
                         />
                         <button
                           onClick={() => updateQuantity(product.product_id, 'quantity_wasted', product.quantity_wasted + 1)}
-                          className="p-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-red-700"
+                          className="p-1.5 md:p-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-red-700 touch-manipulation"
+                          aria-label="Augmenter"
                         >
-                          <Plus size={16} />
+                          <Plus size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Restant</label>
-                      <div className="input bg-slate-50 text-center font-semibold text-slate-900">
+                      <label className="block text-xs md:text-sm font-medium text-slate-700 mb-2">Restant</label>
+                      <div className="input bg-slate-50 text-center font-semibold text-slate-900 py-2">
                         {product.quantity_remaining}
                       </div>
                     </div>
@@ -323,12 +329,12 @@ export default function InventairePage() {
 
             {/* Summary */}
             <div className="card bg-primary text-white mb-6">
-              <h3 className="text-xl font-bold mb-2">Résumé du jour</h3>
-              <div className="flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold mb-2">Résumé du jour</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span className="text-blue-100">Chiffre d'affaires</span>
-                <span className="text-3xl font-bold">{formatCurrency(totalRevenue)}</span>
+                <span className="text-2xl md:text-3xl font-bold">{formatCurrency(totalRevenue)}</span>
               </div>
-              <div className="mt-2 text-sm text-blue-100">
+              <div className="mt-2 text-xs md:text-sm text-blue-100">
                 {saving ? 'Enregistrement automatique…' : saveMessage}
               </div>
             </div>
@@ -336,8 +342,9 @@ export default function InventairePage() {
             {/* Actions */}
             <div className="flex space-x-4">
               <button onClick={handleOpenProductModal} className="btn-secondary flex-1">
-                <Settings size={20} className="inline mr-2" />
-                Gérer les produits
+                <Settings size={18} className="inline mr-2" />
+                <span className="hidden sm:inline">Gérer les produits</span>
+                <span className="sm:hidden">Produits</span>
               </button>
             </div>
           </>
@@ -345,8 +352,8 @@ export default function InventairePage() {
 
         {/* Product Selection Modal */}
         {showProductModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col my-4">
               <div className="p-6 border-b border-slate-200">
                 <h2 className="text-2xl font-bold text-slate-900">Sélectionner les produits</h2>
               </div>
@@ -411,8 +418,8 @@ export default function InventairePage() {
 
         {/* Reintegrate Modal */}
         {showReintegrateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col my-4">
               <div className="p-6 border-b border-slate-200">
                 <h2 className="text-2xl font-bold text-slate-900">Réintégrer les invendus de la veille</h2>
                 <p className="text-slate-600 mt-1 text-sm">

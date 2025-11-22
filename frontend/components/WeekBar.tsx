@@ -31,35 +31,36 @@ export default function WeekBar({ date, onChange, weekStartsOn = 1, title }: Wee
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl mb-6">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200">
+      <div className="flex items-center justify-between px-2 md:px-3 py-2 border-b border-slate-200">
         <button
           onClick={goPrevWeek}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-700"
+          className="p-1 md:p-2 rounded-lg hover:bg-slate-100 text-slate-700"
           aria-label="Semaine précédente"
         >
           <ChevronLeft size={18} />
         </button>
-        <div className="flex items-center space-x-3">
-          <div className="text-sm font-medium text-slate-700">
-            {title ? title + ' • ' : ''}
-            {format(weekStart, 'dd MMM', { locale: fr })} – {format(addDays(weekStart, 6), 'dd MMM yyyy', { locale: fr })}
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 flex-1 px-2">
+          <div className="text-xs sm:text-sm font-medium text-slate-700 text-center">
+            {title && <span className="hidden sm:inline">{title} • </span>}
+            <span className="hidden sm:inline">{format(weekStart, 'dd MMM', { locale: fr })} – {format(addDays(weekStart, 6), 'dd MMM yyyy', { locale: fr })}</span>
+            <span className="sm:hidden">{format(weekStart, 'dd/MM')} – {format(addDays(weekStart, 6), 'dd/MM')}</span>
           </div>
           <button
             onClick={goToday}
-            className="px-2 py-1 text-xs rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700"
+            className="px-2 py-1 text-xs rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 whitespace-nowrap"
           >
             Aujourd'hui
           </button>
         </div>
         <button
           onClick={goNextWeek}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-700"
+          className="p-1 md:p-2 rounded-lg hover:bg-slate-100 text-slate-700"
           aria-label="Semaine suivante"
         >
           <ChevronRight size={18} />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 p-2">
+      <div className="grid grid-cols-7 gap-0.5 md:gap-1 p-1 md:p-2">
         {days.map((d) => {
           const active = isSameDay(d, referenceDate)
           return (
@@ -67,14 +68,14 @@ export default function WeekBar({ date, onChange, weekStartsOn = 1, title }: Wee
               key={d.toISOString()}
               onClick={() => onChange(format(d, 'yyyy-MM-dd'))}
               className={`
-                flex flex-col items-center py-2 rounded-lg transition-all
+                flex flex-col items-center py-1 md:py-2 rounded-lg transition-all
                 ${active ? 'bg-primary text-white shadow' : 'hover:bg-slate-100 text-slate-700'}
               `}
             >
-              <span className="text-xs opacity-80">
+              <span className="text-[10px] md:text-xs opacity-80">
                 {format(d, 'EEE', { locale: fr })}
               </span>
-              <span className="text-lg font-semibold">
+              <span className="text-sm md:text-lg font-semibold">
                 {format(d, 'd', { locale: fr })}
               </span>
             </button>

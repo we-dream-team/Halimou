@@ -156,15 +156,15 @@ export default function PayePage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-1">Paye</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">Paye</h1>
             <p className="text-slate-600">Gestion des salariés et bulletins</p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex items-center space-x-2">
               <CalendarDays size={18} className="text-slate-600" />
               <input
@@ -174,7 +174,7 @@ export default function PayePage() {
                 className="input"
               />
             </div>
-            <button onClick={() => handleOpenEmployeeModal()} className="btn-primary">
+            <button onClick={() => handleOpenEmployeeModal()} className="btn-primary w-full sm:w-auto">
               <Plus size={18} className="inline mr-2" />
               Nouveau salarié
             </button>
@@ -212,9 +212,10 @@ export default function PayePage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table - Mobile Card View / Desktop Table View */}
         <div className="card">
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="text-left text-slate-600">
@@ -287,13 +288,88 @@ export default function PayePage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {employees
+              .filter(e => !selectedEmployeeId || e.id === selectedEmployeeId)
+              .map((e) => {
+                const entry = payrolls.find(p => p.employee_id === e.id && p.period === period) || {
+                  employee_id: e.id,
+                  period,
+                  advances: 0,
+                  notes: '',
+                }
+                const remaining = (e.base_salary || 0) - (entry.advances || 0)
+                return (
+                  <div key={e.id} className="border border-slate-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{e.full_name}</h3>
+                        <p className="text-sm text-slate-600">{e.role || '-'}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          className="p-2 text-primary hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => handleOpenEmployeeModal(e)}
+                          title="Modifier"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          className="p-2 text-danger hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => handleDeleteEmployee(e)}
+                          title="Supprimer"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Salaire base:</span>
+                        <span className="font-medium">{formatCurrency(e.base_salary || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Avances:</span>
+                        <span className="font-medium">{formatCurrency(entry.advances || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Reste:</span>
+                        <span className="font-semibold text-lg">{formatCurrency(remaining)}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-slate-700">Nouvelle avance</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          className="input flex-1"
+                          value={advanceInputs[e.id] ?? ''}
+                          onChange={(ev) => {
+                            setAdvanceInputs((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                          }}
+                          placeholder="Montant"
+                        />
+                        <button
+                          className="btn-primary px-4"
+                          onClick={() => handleAddAdvance(e)}
+                        >
+                          <Save size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
         </div>
       </div>
 
       {/* Employee Modal */}
       {showEmployeeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full my-4">
             <div className="p-6 border-b border-slate-200">
               <h2 className="text-2xl font-bold text-slate-900">
                 {editingEmployee ? 'Modifier le salarié' : 'Nouveau salarié'}
@@ -349,7 +425,7 @@ export default function PayePage() {
       )}
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 max-w-sm">
           <div
             className={`
               px-4 py-3 rounded-xl shadow-lg border

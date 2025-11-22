@@ -1,10 +1,16 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Navigation from '@/components/Navigation'
 
 export const metadata: Metadata = {
   title: 'Gestion Inventaire Pâtisserie',
   description: 'Application de gestion d\'inventaire pour artisan pâtissier',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({
@@ -15,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <div className="flex h-screen bg-slate-50">
+        <div className="flex flex-col md:flex-row h-screen bg-slate-50">
           <Navigation />
           <main className="flex-1 overflow-y-auto">
             {children}
