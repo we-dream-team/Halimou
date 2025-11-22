@@ -65,7 +65,8 @@ class TestValidation:
     
     async def test_employee_validation_missing_fields(self, test_client):
         """Test de validation d'employé avec champs manquants"""
-        invalid_data = {"full_name": "Test"}  # base_salary manquant
+        # base_salary a une valeur par défaut, donc testons avec un champ vraiment requis manquant
+        invalid_data = {}  # full_name manquant (requis)
         response = await test_client.post("/api/employees", json=invalid_data)
         assert response.status_code in [400, 422]  # Validation error
     

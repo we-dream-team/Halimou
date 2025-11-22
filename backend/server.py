@@ -39,7 +39,7 @@ class Product(BaseModel):
 class ProductCreate(BaseModel):
     name: str
     category: str
-    price: float
+    price: float = Field(gt=0, description="Price must be positive")
     is_recurring: bool = True
 
 class ProductUpdate(BaseModel):

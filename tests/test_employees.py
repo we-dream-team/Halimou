@@ -201,8 +201,8 @@ class TestPayrolls:
         employee_response = await test_client.post("/api/employees", json=sample_employee_data)
         employee = employee_response.json()
         payroll_data = {**sample_payroll_data, "employee_id": employee["id"]}
-        product_response = await test_client.post("/api/products", json=sample_product_data)
-        created = product_response.json()
+        payroll_response = await test_client.post("/api/payrolls", json=payroll_data)
+        created = payroll_response.json()
         payroll_id = created["id"]
         
         response = await test_client.delete(f"/api/payrolls/{payroll_id}")
@@ -210,7 +210,7 @@ class TestPayrolls:
         
         # Vérifier que la fiche n'existe plus
         get_response = await test_client.get("/api/payrolls")
-        payrolls = response.json()
+        payrolls = get_response.json()
         payroll_ids = [p["id"] for p in payrolls]
         assert payroll_id not in payroll_ids
 
