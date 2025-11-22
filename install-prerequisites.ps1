@@ -3,6 +3,13 @@
 #   En ligne: PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.ps1'))"
 #   Local: .\install-prerequisites.ps1
 #   IMPORTANT: Executez en tant qu'administrateur pour installer les logiciels
+#
+# Si vous obtenez une erreur "Le nom distant n'a pas pu etre resolu":
+#   1. Telechargez le script manuellement depuis: https://github.com/we-dream-team/Halimou/blob/main/install-prerequisites.ps1
+#   2. Enregistrez-le dans un dossier
+#   3. Ouvrez PowerShell en tant qu'administrateur
+#   4. Naviguez vers le dossier: cd "C:\chemin\vers\le\dossier"
+#   5. Executez: .\install-prerequisites.ps1
 
 # Verifier si le script est execute en tant qu'administrateur
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -20,14 +27,64 @@ if (-not $isAdmin) {
 
 $ErrorActionPreference = "Continue"
 
+# Detecter la version de Windows
+$osVersion = [System.Environment]::OSVersion.Version
+$osInfo = Get-CimInstance Win32_OperatingSystem
+$osName = $osInfo.Caption
+$osVersionString = "$($osVersion.Major).$($osVersion.Minor)"
+
 Write-Host "[Halimou] Installation des prerequis pour Halimou" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "[*] Systeme detecte: $osName (Version $osVersionString)" -ForegroundColor Gray
 Write-Host ""
 
 # Fonction pour verifier si une commande existe
 function Test-Cmd {
   param([string]$Name)
   $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+# Verifier si winget est disponible et l'installer si necessaire (Windows 10)
+function Ensure-Winget {
+  if (Test-Cmd -Name "winget") {
+    return $true
+  }
+  
+  Write-Host "[*] winget n'est pas disponible. Tentative d'installation..." -ForegroundColor Yellow
+  
+  # Sur Windows 10, winget peut etre installe via Microsoft Store
+  try {
+    # Essayer d'installer App Installer depuis le Microsoft Store
+    $appInstaller = Get-AppxPackage -Name "Microsoft.DesktopAppInstaller" -ErrorAction SilentlyContinue
+    if (-not $appInstaller) {
+      Write-Host "[!] winget n'est pas installe. Installation via Microsoft Store..." -ForegroundColor Yellow
+      Write-Host "    Le script va utiliser Chocolatey comme alternative." -ForegroundColor Yellow
+      Write-Host ""
+      $response = Read-Host "Voulez-vous installer winget maintenant? (o/N)"
+      if ($response -eq "o" -or $response -eq "O") {
+        Start-Process "ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1"
+        Write-Host "[*] Installez 'App Installer' depuis le Microsoft Store, puis relancez ce script." -ForegroundColor Yellow
+        Write-Host ""
+        return $false
+      }
+    } else {
+      # App Installer est installe mais winget n'est pas dans le PATH
+      Write-Host "[!] App Installer est installe mais winget n'est pas accessible." -ForegroundColor Yellow
+      Write-Host "    Le script va utiliser Chocolatey comme alternative." -ForegroundColor Yellow
+    }
+  } catch {
+    Write-Host "[!] Impossible de verifier winget. Utilisation de Chocolatey comme alternative." -ForegroundColor Yellow
+  }
+  
+  return $false
+}
+
+# Verifier winget
+$hasWinget = Ensure-Winget
+if (-not $hasWinget) {
+  Write-Host "[*] Le script utilisera Chocolatey pour les installations." -ForegroundColor Cyan
+  Write-Host ""
 }
 
 # Fonction pour installer avec winget
@@ -37,12 +94,19 @@ function Install-WithWinget {
   if (Test-Cmd -Name "winget") {
     Write-Host "[*] Installation de $PackageName via winget..." -ForegroundColor Yellow
     try {
+      # Verifier la version de winget (certaines versions de Windows 10 ont des bugs)
+      $wingetVersion = winget --version 2>&1
+      
       $result = winget install --id $PackageId --accept-package-agreements --accept-source-agreements --silent 2>&1
       if ($LASTEXITCODE -eq 0) {
         Write-Host "[OK] $PackageName installe avec succes via winget" -ForegroundColor Green
         return $true
       } else {
         Write-Host "[!] Installation via winget echouee (code: $LASTEXITCODE)" -ForegroundColor Yellow
+        # Afficher plus de details sur l'erreur
+        if ($result) {
+          Write-Host "    Details: $($result -join ' ')" -ForegroundColor Gray
+        }
         return $false
       }
     } catch {

@@ -1,10 +1,47 @@
-# 🔧 Dépannage - Windows 11
+# 🔧 Dépannage - Windows 10/11
 
-Guide pour résoudre les problèmes courants lors de l'installation sur Windows 11.
+Guide pour résoudre les problèmes courants lors de l'installation sur Windows 10 Pro et Windows 11.
 
 ## ⚠️ Problèmes courants
 
-### 1. "Le script ne peut pas être exécuté car il est désactivé sur ce système"
+### 1. "Le nom distant n'a pas pu être résolu: 'raw.githubusercontent.com'"
+
+**Problème:**
+- Erreur de connexion réseau ou DNS
+- Impossible de télécharger le script depuis GitHub
+
+**Solutions:**
+
+**Option 1: Télécharger le script manuellement (recommandé)**
+1. Ouvrez votre navigateur
+2. Allez sur: https://github.com/we-dream-team/Halimou
+3. Cliquez sur le fichier `install-prerequisites.ps1`
+4. Cliquez sur "Raw" (ou téléchargez directement)
+5. Enregistrez le fichier dans un dossier (ex: `C:\Users\VotreNom\Downloads\`)
+6. Ouvrez PowerShell en tant qu'administrateur
+7. Naviguez vers le dossier: `cd C:\Users\VotreNom\Downloads`
+8. Exécutez: `.\install-prerequisites.ps1`
+
+**Option 2: Cloner le repository**
+```powershell
+# Si Git est installé
+git clone https://github.com/we-dream-team/Halimou.git
+cd Halimou
+.\install-prerequisites.ps1
+```
+
+**Option 3: Vérifier la connexion réseau**
+```powershell
+# Tester la connexion
+Test-NetConnection raw.githubusercontent.com -Port 443
+
+# Si ça échoue, vérifiez:
+# - Votre connexion internet
+# - Votre pare-feu
+# - Votre proxy/VPN
+```
+
+### 2. "Le script ne peut pas être exécuté car il est désactivé sur ce système"
 
 **Solution:**
 ```powershell
@@ -46,12 +83,29 @@ PowerShell -ExecutionPolicy Bypass -File .\install-prerequisites.ps1
    py --version
    ```
 
-### 4. winget n'est pas reconnu
+### 4. winget n'est pas reconnu (Windows 10 Pro)
 
-**Solution:**
-- winget est inclus dans Windows 11, mais peut nécessiter une mise à jour
-- Installez le "App Installer" depuis le Microsoft Store
-- Ou utilisez Chocolatey (le script l'installera automatiquement)
+**Problème:**
+- Sur Windows 10 Pro, winget n'est pas installé par défaut
+- Il nécessite l'installation de "App Installer" depuis le Microsoft Store
+
+**Solutions:**
+
+**Option 1: Installer winget (recommandé)**
+1. Ouvrez le Microsoft Store
+2. Recherchez "App Installer"
+3. Installez ou mettez à jour "App Installer"
+4. Fermez et rouvrez PowerShell
+5. Vérifiez: `winget --version`
+
+**Option 2: Utiliser Chocolatey (automatique)**
+- Le script détectera automatiquement l'absence de winget
+- Il installera et utilisera Chocolatey à la place
+- Aucune action manuelle requise
+
+**Note pour Windows 11:**
+- winget est inclus mais peut nécessiter une mise à jour
+- Installez le "App Installer" depuis le Microsoft Store si nécessaire
 
 ### 5. Erreur lors de l'installation de Chocolatey
 
@@ -179,7 +233,8 @@ npm run dev
 ## 🆘 Besoin d'aide supplémentaire?
 
 1. Vérifiez les logs d'erreur dans PowerShell
-2. Assurez-vous d'avoir les dernières mises à jour Windows 11
+2. Assurez-vous d'avoir les dernières mises à jour Windows (10 Pro ou 11)
+3. **Windows 10 Pro:** Si winget n'est pas disponible, le script utilisera automatiquement Chocolatey
 3. Vérifiez que votre antivirus ne bloque pas les installations
 4. Consultez la documentation officielle:
    - [Git](https://git-scm.com/download/win)

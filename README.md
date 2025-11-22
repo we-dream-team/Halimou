@@ -29,14 +29,38 @@ tests/               # Tests Python (placeholder)
 bash <(curl -sSL https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.sh)
 ```
 
-**Windows (PowerShell):**
+**Windows (PowerShell - Windows 10 Pro / Windows 11):**
+
+**Option A: Téléchargement automatique (nécessite une connexion internet)**
 ```powershell
 PowerShell -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/we-dream-team/Halimou/main/install-prerequisites.ps1'))"
 ```
 
-**Ou télécharger et exécuter localement:**
-- macOS/Linux: `bash install-prerequisites.sh`
-- Windows: `.\install-prerequisites.ps1`
+**Option B: Téléchargement manuel (si erreur de connexion)**
+Si vous obtenez l'erreur **"Le nom distant n'a pas pu être résolu"**, consultez le guide détaillé:
+- **[INSTALLATION_MANUELLE_WINDOWS.md](INSTALLATION_MANUELLE_WINDOWS.md)** - Guide complet avec captures d'écran
+
+**Résumé rapide:**
+1. Téléchargez le fichier `install-prerequisites.ps1` depuis: https://github.com/we-dream-team/Halimou/blob/main/install-prerequisites.ps1
+2. Clic droit sur le fichier > "Raw" > Enregistrer sous (avec extension `.ps1`)
+3. Ouvrez PowerShell en tant qu'administrateur
+4. Naviguez vers le dossier: `cd "C:\chemin\vers\le\dossier"`
+5. Exécutez: `.\install-prerequisites.ps1`
+
+**Option C: Cloner le repository (si Git est installé)**
+```powershell
+git clone https://github.com/we-dream-team/Halimou.git
+cd Halimou
+.\install-prerequisites.ps1
+```
+
+**macOS/Linux:**
+- `bash install-prerequisites.sh`
+
+**Note Windows 10 Pro:**
+- Le script détecte automatiquement si `winget` est disponible
+- Si `winget` n'est pas installé, le script utilisera automatiquement Chocolatey
+- Aucune action manuelle requise - le script s'adapte à votre système
 
 **Pour désinstaller les prérequis (tests):**
 - Windows: `.\uninstall-prerequisites.ps1` (en tant qu'administrateur)
@@ -188,6 +212,24 @@ Pour installer l'application comme services Windows (démarrage automatique) :
 ```
 
 Voir [WINDOWS_SERVICES.md](WINDOWS_SERVICES.md) pour plus de détails.
+
+## 🔧 Dépannage
+
+### Windows 10 Pro / Windows 11
+Si vous rencontrez des problèmes lors de l'installation sur Windows, consultez les guides détaillés :
+- **[INSTALLATION_MANUELLE_WINDOWS.md](INSTALLATION_MANUELLE_WINDOWS.md)** - Si vous avez des problèmes de connexion réseau
+- **[TROUBLESHOOTING_WINDOWS.md](TROUBLESHOOTING_WINDOWS.md)** - Guide de dépannage complet
+
+**Problèmes courants:**
+- **"Le nom distant n'a pas pu être résolu":** Problème de connexion DNS/internet. Utilisez l'Option B (téléchargement manuel) ci-dessus
+- **winget non disponible (Windows 10 Pro):** Le script utilisera automatiquement Chocolatey
+- **Python introuvable:** Installez Python manuellement et cochez "Add Python to PATH"
+- **Commandes non reconnues:** Fermez et rouvrez PowerShell après l'installation
+
+### macOS / Linux
+- Assurez-vous d'avoir les permissions d'installation (sudo peut être requis)
+- Vérifiez que Homebrew est installé sur macOS
+- Sur Linux, utilisez `apt-get` (Debian/Ubuntu) ou le gestionnaire de paquets de votre distribution
 
 ## Licence
 Projet interne/démo. Adapter selon vos besoins.
