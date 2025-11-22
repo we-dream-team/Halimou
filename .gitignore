@@ -3,10 +3,12 @@
 # IDE and editors
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
 # Dependencies
 node_modules/
-/node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -18,6 +20,13 @@ node_modules/
 
 # Testing
 /coverage
+.coverage
+htmlcov/
+.pytest_cache/
+*.cover
+.hypothesis/
+test-results/
+test-results.xml
 
 # Next.js
 /.next/
@@ -27,42 +36,62 @@ next-env.d.ts
 
 # Production builds
 /build
+/dist
 dist/
-dist
 
-# Environment files (comprehensive coverage)
-
-*token.json*
-*credentials.json*
+# Environment files
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+.env*.local
 
 # Logs and debug files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
+*.log
 dump.rdb
 
 # System files
 .DS_Store
 *.pem
+Thumbs.db
+desktop.ini
 
 # Python
 __pycache__/
-*pyc*
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
 .venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+.eggs/
+dist/
+build/
 
 # Development tools
-chainlit.md
 .chainlit
 .ipynb_checkpoints/
 .ac
 
 # Deployment
 .vercel
+.netlify
 
 # Data and databases
-agenthub/agents/youtube/db
+*.db
+*.sqlite
+*.sqlite3
 
 # Archive files and large assets
 **/*.zip
@@ -75,15 +104,42 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
 
-# Mobile development
-android-sdk/ -e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
-frontend/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
--e 
-# Environment files
-*.env
-*.env.*
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+test_result.md
+*.patch
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# MongoDB
+*.lock
+
+# Coverage reports
+coverage/
+.nyc_output/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Python testing
+.tox/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json

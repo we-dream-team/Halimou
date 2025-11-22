@@ -9,8 +9,8 @@ Application complète (backend FastAPI + frontend Next.js ) pour gérer l’inve
 ## Structure du projet
 ```
 backend/             # API FastAPI + scripts d'init BDD
-frontend/            # Application web Next.js (Tailwind)
-tests/               # Tests Python (placeholder)
+frontend/            # Application web Next.js (Tailwind CSS)
+tests/               # Suite de tests pytest complète
 ```
 
 ## Prérequis
@@ -147,41 +147,88 @@ npm run dev   # démarre sur http://localhost:3000
 Par défaut, l'app Web pointe vers `NEXT_PUBLIC_API_URL` ou `http://localhost:8001`.
 
 ## Fonctionnalités principales
-- Catalogue produits: création, édition, suppression, archivage
-- Inventaire quotidien: quantités produites, vendues, jetées, restant calculé automatiquement
-- Résumé du jour: chiffre d’affaires
-- Statistiques: ventes, gaspillage, revenu total, performance par produit, export JSON
 
-## API (extraits)
+### 📦 Gestion des Produits
+- Création, édition, suppression et archivage de produits
+- Catégorisation (viennoiserie, gâteau, autre)
+- Produits récurrents (apparaissent automatiquement dans les inventaires)
+
+### 📊 Inventaire Quotidien
+- Saisie des quantités : produites, vendues, jetées
+- Calcul automatique des quantités restantes
+- Réintégration des invendus de la veille
+- Sauvegarde automatique après 800ms d'inactivité
+- Résumé du jour avec chiffre d'affaires
+
+### 📈 Statistiques
+- Vue d'ensemble : ventes totales, gaspillage, revenu
+- Performance par produit : moyennes quotidiennes, taux de vente, gaspillage
+- Filtrage par période : semaine, 7 jours, 30 jours, tout
+- Export des données en JSON
+
+### 👥 Gestion de la Paie
+- Gestion des employés : création, modification, suppression
+- Fiches de paie par période (mois)
+- Suivi des avances sur salaire
+- Calcul automatique du reste à payer
+
+## API Endpoints
+
 Base URL: `http://<HOST>:8001/api`
 
-Produits:
-- `POST /products` — créer
-- `GET /products` — lister (par défaut sans archivés)
-- `GET /products/{id}` — détail
-- `PUT /products/{id}` — mettre à jour
-- `DELETE /products/{id}` — supprimer
+### Produits
+- `POST /products` — Créer un produit
+- `GET /products?include_archived=true` — Lister tous les produits (avec archivés)
+- `GET /products/{id}` — Récupérer un produit par ID
+- `PUT /products/{id}` — Mettre à jour un produit
+- `DELETE /products/{id}` — Supprimer un produit
 
-Inventaires:
-- `POST /inventories` — créer l’inventaire du jour (unique par date)
-- `GET /inventories?limit=N` — lister récents
-- `GET /inventories/{date}` — lire par date (YYYY-MM-DD)
-- `PUT /inventories/{date}` — mettre à jour les produits du jour
-- `DELETE /inventories/{date}` — supprimer
+### Inventaires
+- `POST /inventories` — Créer l'inventaire du jour (unique par date)
+- `GET /inventories?limit=N` — Lister les inventaires récents (triés par date décroissante)
+- `GET /inventories/{date}` — Récupérer un inventaire par date (format: YYYY-MM-DD)
+- `PUT /inventories/{date}` — Mettre à jour les produits de l'inventaire
+- `DELETE /inventories/{date}` — Supprimer un inventaire
 
-Statistiques:
-- `GET /stats/summary?start_date=&end_date=` — agrégats sur la période
-- `GET /stats/product/{product_id}` — stats par produit
-- `GET /export?start_date=&end_date=` — export JSON (inventaires + produits)
+### Statistiques
+- `GET /stats/summary?start_date=&end_date=` — Résumé global avec agrégats
+- `GET /stats/product/{product_id}?start_date=&end_date=` — Statistiques détaillées par produit
+- `GET /export?start_date=&end_date=` — Export JSON complet (inventaires + produits)
 
-Health:
-- `GET /` — ping du service
+### Employés et Paie
+- `POST /employees` — Créer un employé
+- `GET /employees?include_inactive=true` — Lister les employés
+- `PUT /employees/{id}` — Mettre à jour un employé
+- `DELETE /employees/{id}` — Supprimer un employé
+- `POST /payrolls` — Créer une fiche de paie
+- `GET /payrolls?employee_id=&period=` — Lister les fiches de paie (avec filtres)
+- `PUT /payrolls/{id}` — Mettre à jour une fiche de paie
+- `DELETE /payrolls/{id}` — Supprimer une fiche de paie
 
-## Notes d’implémentation
-- Backend: `FastAPI`, `motor` (MongoDB async), `pydantic` v2, CORS ouvert pour faciliter le dev.
-- Frontend Web: axios (`frontend/lib/api.ts`) utilise `NEXT_PUBLIC_API_URL` (fallback `http://localhost:8001`).
-- UI: Tailwind CSS avec composants simples (ex: `Navigation.tsx`).
-- Redirection d’accueil: `frontend/app/page.tsx` redirige vers `/inventaire`.
+### Health Check
+- `GET /` — Vérifier l'état du service
+
+## Notes d'implémentation
+
+### Backend
+- **Framework**: FastAPI avec support async
+- **Base de données**: MongoDB avec Motor (driver async)
+- **Validation**: Pydantic v2 pour la validation des données
+- **CORS**: Configuré pour permettre les requêtes depuis le frontend
+- **Index MongoDB**: Optimisés pour les requêtes fréquentes (date, is_archived)
+
+### Frontend
+- **Framework**: Next.js 16 avec React
+- **Styling**: Tailwind CSS avec design responsive
+- **API Client**: Axios configuré dans `frontend/lib/api.ts`
+- **Navigation**: Menu responsive avec hamburger sur mobile
+- **Redirection**: Page d'accueil redirige vers `/inventaire`
+
+### Tests
+- **Framework**: pytest avec pytest-asyncio
+- **Client de test**: httpx.AsyncClient pour les tests d'intégration
+- **Couverture**: 54+ scénarios de test couvrant tous les endpoints
+- **Base de données de test**: Isolation complète avec `halimou_test`
 
 ## Dépannage
 - CORS/URL API: vérifiez `NEXT_PUBLIC_API_URL` côté web.
@@ -230,6 +277,43 @@ Si vous rencontrez des problèmes lors de l'installation sur Windows, consultez 
 - Assurez-vous d'avoir les permissions d'installation (sudo peut être requis)
 - Vérifiez que Homebrew est installé sur macOS
 - Sur Linux, utilisez `apt-get` (Debian/Ubuntu) ou le gestionnaire de paquets de votre distribution
+
+## 🧪 Tests
+
+L'application dispose d'une suite de tests complète avec pytest.
+
+### Exécution des tests
+
+**macOS/Linux:**
+```bash
+./run-tests.sh
+```
+
+**Windows:**
+```powershell
+.\run-tests.ps1
+```
+
+**Avec couverture de code:**
+```bash
+./run-tests.sh --coverage
+# ou
+pytest tests/ --cov=server --cov-report=html
+```
+
+### Documentation des tests
+
+- **[tests/README.md](tests/README.md)** - Guide complet des tests
+- **[TESTS_SCENARIOS.md](TESTS_SCENARIOS.md)** - Liste de tous les scénarios de test
+
+### Scénarios couverts
+
+- ✅ **Produits** : CRUD complet, validation, archivage
+- ✅ **Inventaires** : CRéation, mise à jour, calcul automatique du revenu
+- ✅ **Statistiques** : Résumés globaux et par produit, plages de dates
+- ✅ **Employés et Paie** : Gestion complète des salariés et bulletins
+- ✅ **Validation** : Tests de validation des données
+- ✅ **Gestion d'erreurs** : Codes HTTP appropriés, messages d'erreur
 
 ## Licence
 Projet interne/démo. Adapter selon vos besoins.

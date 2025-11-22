@@ -128,18 +128,81 @@ export default function InventairePage() {
         setSaving(true)
         setSaveMessage('Enregistrement…')
         const payload = { products: inventoryProducts }
+        
+        // Debug: log les données envoyées
+        console.log('[DEBUG] Saving inventory:', {
+          date: selectedDate,
+          hasInventory: !!inventory,
+          productsCount: inventoryProducts.length,
+          products: inventoryProducts.map(p => ({
+            product_id: p.product_id,
+            product_name: p.product_name,
+            quantity_produced: p.quantity_produced,
+            quantity_sold: p.quantity_sold,
+            quantity_wasted: p.quantity_wasted,
+            quantity_remaining: p.quantity_remaining,
+            price: p.price,
+            category: p.category
+          }))
+        })
+        
         if (inventory) {
           await inventoryApi.update(selectedDate, payload)
         } else {
-          await inventoryApi.create({ date: selectedDate, products: inventoryProducts })
+          try {
+            await inventoryApi.create({ date: selectedDate, products: inventoryProducts })
+          } catch (createError: any) {
+            // Debug: log l'erreur complète
+            console.error('[DEBUG] Create error:', {
+              status: createError?.response?.status,
+              statusText: createError?.response?.statusText,
+              data: createError?.response?.data,
+              detail: createError?.response?.data?.detail,
+              message: createError?.message
+            })
+            
+            // Si l'inventaire existe déjà (erreur 400), essayer de mettre à jour
+            const errorDetail = createError?.response?.data?.detail || ''
+            if (createError?.response?.status === 400 && 
+                (errorDetail.includes('already exists') || errorDetail.includes('Inventory already exists'))) {
+              console.log('[DEBUG] Inventory exists, switching to update')
+              // Recharger l'inventaire existant et mettre à jour
+              try {
+                const existingInventory = await inventoryApi.getByDate(selectedDate)
+                setInventory(existingInventory.data)
+                await inventoryApi.update(selectedDate, payload)
+              } catch (updateError: any) {
+                console.error('[DEBUG] Update error after create failed:', updateError)
+                throw createError // Relancer l'erreur originale si la mise à jour échoue
+              }
+            } else {
+              throw createError // Relancer l'erreur si ce n'est pas "already exists"
+            }
+          }
         }
+        // Recharger l'inventaire pour s'assurer qu'on a les bonnes données
+        const updatedInventory = await inventoryApi.getByDate(selectedDate)
+        setInventory(updatedInventory.data)
+        setInventoryProducts(updatedInventory.data.products)
+        
         lastSavedHashRef.current = hash
         setSaveMessage('Enregistré')
         // Effacer le message après 1.5s
         setTimeout(() => setSaveMessage(''), 1500)
       } catch (error: any) {
-        console.error('Error saving inventory:', error)
-        setSaveMessage(error?.response?.data?.detail || 'Erreur sauvegarde')
+        console.error('[DEBUG] Final error saving inventory:', {
+          error,
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          detail: error?.response?.data?.detail,
+          message: error?.message,
+          stack: error?.stack
+        })
+        const errorMessage = error?.response?.data?.detail || error?.message || 'Erreur sauvegarde'
+        setSaveMessage(errorMessage)
+        // Afficher le message d'erreur plus longtemps
+        setTimeout(() => setSaveMessage(''), 3000)
       } finally {
         setSaving(false)
       }

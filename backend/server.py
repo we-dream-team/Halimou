@@ -1,4 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -179,21 +181,61 @@ async def delete_product(product_id: str):
 # Daily Inventory Endpoints
 @api_router.post("/inventories", response_model=DailyInventory)
 async def create_inventory(inventory: DailyInventoryCreate):
+    logger.info(f"Creating inventory for date: {inventory.date}, products count: {len(inventory.products)}")
+    
     # Check if inventory already exists for this date
     existing = await db.inventories.find_one({"date": inventory.date})
     if existing:
-        raise HTTPException(status_code=400, detail="Inventory already exists for this date")
+        logger.warning(f"Inventory already exists for date: {inventory.date}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Inventory already exists for this date: {inventory.date}. Use PUT /inventories/{inventory.date} to update."
+        )
+    
+    # Validate that products list is not empty
+    if not inventory.products or len(inventory.products) == 0:
+        logger.error("Products list is empty")
+        raise HTTPException(
+            status_code=400,
+            detail="Products list cannot be empty"
+        )
+    
+    # Validate each product has required fields
+    for i, product in enumerate(inventory.products):
+        logger.debug(f"Validating product {i}: {product.product_id}, price: {product.price}")
+        if not product.product_id:
+            logger.error(f"Product at index {i} is missing product_id")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product at index {i} is missing product_id"
+            )
+        if product.price < 0:
+            logger.error(f"Product at index {i} has invalid price: {product.price}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product at index {i} has invalid price: {product.price}"
+            )
     
     inventory_dict = inventory.dict()
     inventory_dict["created_at"] = datetime.utcnow()
     inventory_dict["updated_at"] = datetime.utcnow()
     
     # Calculate total revenue
-    total_revenue = sum(p["quantity_sold"] * p["price"] for p in inventory_dict["products"])
+    try:
+        total_revenue = sum(p.quantity_sold * p.price for p in inventory.products)
+        logger.info(f"Total revenue calculated: {total_revenue}")
+    except (TypeError, AttributeError) as e:
+        logger.error(f"Error calculating total revenue: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error calculating total revenue: {str(e)}. Ensure all products have valid quantity_sold and price."
+        )
+    
     inventory_dict["total_revenue"] = total_revenue
     
     result = await db.inventories.insert_one(inventory_dict)
     created_inventory = await db.inventories.find_one({"_id": result.inserted_id})
+    logger.info(f"Inventory created successfully with ID: {result.inserted_id}")
     return DailyInventory(**serialize_doc(created_inventory))
 
 @api_router.get("/inventories", response_model=List[DailyInventory])
@@ -354,6 +396,13 @@ async def list_employees(include_inactive: bool = False):
     docs = await db.employees.find(query).sort("full_name", 1).to_list(1000)
     return [Employee(**serialize_doc(d)) for d in docs]
 
+@api_router.get("/employees/{employee_id}", response_model=Employee)
+async def get_employee(employee_id: str):
+    employee = await db.employees.find_one({"_id": ObjectId(employee_id)})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return Employee(**serialize_doc(employee))
+
 @api_router.put("/employees/{employee_id}", response_model=Employee)
 async def update_employee(employee_id: str, employee_update: EmployeeUpdate):
     update_data = {k: v for k, v in employee_update.dict().items() if v is not None}
@@ -435,6 +484,19 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error on {request.url.path}: {exc.errors()}")
+    error_messages = [f"{err['loc']}: {err['msg']}" for err in exc.errors()]
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "detail": f"Validation error: {', '.join(error_messages)}",
+            "errors": exc.errors()
+        }
+    )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
